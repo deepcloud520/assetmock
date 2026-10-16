@@ -107,7 +107,7 @@ export async function explainWithAI(facts: Fact[], final: boolean): Promise<Expl
   if (!process.env.LLM_API_KEY?.trim()) return ruleExplanation(facts, 'AI 暂不可用，显示规则说明。');
   try {
     const result = await generateText({ model: model(true), maxRetries: 0, maxOutputTokens: 8192, abortSignal: AbortSignal.timeout(25000),
-      system: `你是人生模拟器的${final ? '结局复盘' : '月度解释'}助手。只解释提供的事实，不推测未来事件，不输出新的金额、比例或月份。
+      system: `你是人生模拟器的${final ? '结局复盘' : '月度解释'}助手。只解释提供的事实，不推测未来事件，不输出新的金额、比例或月份。当前展示指标是剩余资金（现金加投资账户），不含车辆房产价值，未扣负债，不能称为净资产或收益。
       输出纯JSON：{"paragraphs":[{"factIds":["提供的事实ID"],"text":"简短中文解释"}]}。
       每段必须引用真实提供的ID。text不包含阿拉伯数字或中文数量，数值由界面事实卡展示。
       不声称联网、真实报价、统计概率、最佳方案或普遍推荐。最多三段，突出选择与后果的关系。`,

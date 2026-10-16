@@ -1,6 +1,17 @@
 import { money } from './money';
 import { pathKeys } from './types';
-import type { Fact, MonthResult, PublicRun, StoredRun } from './types';
+import type { Fact, Ledger, MonthResult, PathState, PublicRun, StoredRun } from './types';
+
+export const remainingFunds = (state: Pick<PathState, 'cash' | 'fund'>) => state.cash + state.fund;
+export const fundsChange = (ledger: Ledger) => ledger.salary + ledger.bonus - ledger.living - ledger.carExpense
+  - ledger.medical - ledger.debtPrincipal - ledger.loanPrincipal - ledger.interest - ledger.fundLoss;
+function purchasePaid(run: StoredRun, key: 'cash' | 'loan') {
+  const upfront = key === 'cash' ? run.setup.purchase.price : run.setup.loan.downPayment + run.setup.loan.fee;
+  return upfront + run.history.reduce((sum, month) => {
+    const ledger = month.paths[key].ledger;
+    return sum + (ledger ? ledger.loanPrincipal + ledger.interest : 0);
+  }, 0);
+}
 
 export function monthFacts(result: MonthResult): Fact[] {
   const facts: Fact[] = [];
@@ -13,9 +24,11 @@ export function monthFacts(result: MonthResult): Fact[] {
       facts.push({ id: `${key}.failure`, text: `${title}路径本月无法完成支付，现金和基金仍短缺${money(state.failure.shortfall)}元；曲线保留在第${state.lastSettledMonth}月。` });
     }
     if (!settled || !ledger) continue;
-    facts.push({ id: `${key}.change`, text: `${title}路径本月净资产${ledger.netChange >= 0 ? '增加' : '减少'}${money(Math.abs(ledger.netChange))}元。` });
-    facts.push({ id: `${key}.normal`, text: `${title}路径工资收入${money(ledger.salary)}元，生活和用车支出${money(ledger.living + ledger.carExpense)}元，折旧${money(ledger.depreciation)}元。` });
-    if (ledger.interest) facts.push({ id: `${key}.interest`, text: `${title}路径本月车贷利息${money(ledger.interest)}元；归还本金不额外减少净资产。` });
+    const change = fundsChange(ledger);
+    facts.push({ id: `${key}.change`, text: `${title}路径本月剩余资金${change >= 0 ? '增加' : '减少'}${money(Math.abs(change))}元。` });
+    facts.push({ id: `${key}.normal`, text: `${title}路径工资收入${money(ledger.salary)}元，生活和用车支出${money(ledger.living + ledger.carExpense)}元。` });
+    if (ledger.loanPrincipal || ledger.interest) facts.push({ id: `${key}.repayment`, text: `${title}路径本月偿还车贷本金${money(ledger.loanPrincipal)}元及利息${money(ledger.interest)}元，均减少剩余资金。` });
+    if (ledger.debtPrincipal) facts.push({ id: `${key}.existingDebt`, text: `${title}路径本月偿还既有分期本金${money(ledger.debtPrincipal)}元，减少剩余资金。` });
     if (ledger.medical) facts.push({ id: `${key}.medical`, text: `${title}路径本月医疗自付${money(ledger.medical)}元。` });
     if (ledger.fundLoss) facts.push({ id: `${key}.fundLoss`, text: `${title}路径基金市值减少${money(ledger.fundLoss)}元。` });
     if (ledger.fundSale) facts.push({ id: `${key}.fundSale`, text: `${title}路径卖出基金${money(ledger.fundSale)}元补足支付，卖出本身不产生额外损失。` });
@@ -31,34 +44,35 @@ export function buildSummary(run: StoredRun): PublicRun['summary'] {
   const facts: Fact[] = pathKeys.map(key => {
     const p = run.state.paths[key];
     const name = key === 'cash' ? '全款' : '贷款';
-    return { id: `summary.${key}`, text: `${name}路径${p.status === 'failed' ? `在第${p.failure!.month}月无法完成支付` : `完成至第${p.lastSettledMonth}月`}，最后成功结算净资产${money(p.netWorth)}元。` };
+    return { id: `summary.${key}`, text: `${name}路径${p.status === 'failed' ? `在第${p.failure!.month}月无法完成支付` : `完成至第${p.lastSettledMonth}月`}，最后成功结算剩余资金${money(remainingFunds(p))}元，剩余负债${money(p.debt + p.loanBalance)}元；购车累计已支付${money(purchasePaid(run, key))}元（含已支付车贷本息，不含用车费）。` };
   });
   const interest = run.history.reduce((sum, m) => sum + (m.paths.loan.ledger?.interest ?? 0), 0);
   facts.push({ id: 'summary.interest', text: `贷款路径已成功结算的车贷利息共${money(interest)}元，一次性贷款费用${money(run.setup.loan.fee)}元。` });
-  facts.push({ id: 'summary.boundary', text: '这是同一组游戏经历下的比较，不能用单局结果判断现实中哪种付款方式一定更好。' });
-  if (!comparable) facts.push({ id: 'summary.differentMonths', text: '两条路径的最后成功月份不同，不计算跨月份的净资产差额。' });
-  return { comparable, difference: comparable ? a.netWorth - b.netWorth : null, facts };
+  facts.push({ id: 'summary.boundary', text: '剩余资金仅含现金与投资账户，不含车房价值，也未扣除剩余负债；资金差额不是收益差额，需同时看负债和累计支付。' });
+  if (!comparable) facts.push({ id: 'summary.differentMonths', text: '两条路径的最后成功月份不同，不计算跨月份的剩余资金差额。' });
+  return { comparable, difference: comparable ? remainingFunds(a) - remainingFunds(b) : null, facts };
 }
 
 export function publicRun(run: StoredRun): PublicRun {
   const latest = run.history.at(-1);
   const viewPath = (key: 'cash' | 'loan') => {
     const p = run.state.paths[key];
-    return { netWorth: p.netWorth, initialNetWorth: run.initial.paths[key].netWorth,
-      delta: latest?.paths[key].ledger?.netChange ?? (run.state.month === 0 ? 0 : null),
+    return { remainingFunds: remainingFunds(p), initialFunds: remainingFunds(run.initial.paths[key]), purchasePaid: purchasePaid(run, key),
+      balances: { cash: p.cash, investments: p.fund, liabilities: p.debt + p.loanBalance },
+      delta: latest?.paths[key].ledger ? fundsChange(latest.paths[key].ledger) : (run.state.month === 0 ? 0 : null),
       lastSettledMonth: p.lastSettledMonth, status: p.status, failure: p.failure };
   };
   return {
-    id: run.id, month: run.state.month, status: run.status,
+    displayVersion: 'funds-v1', id: run.id, month: run.state.month, status: run.status,
     profile: { id: run.setup.profile.id, name: run.setup.profile.name, description: run.setup.profile.description },
     input: { profileId: run.setup.profile.id, price: run.setup.purchase.price, offerId: run.setup.loan.id,
       downPaymentPercent: run.setup.loan.downPaymentPercent, termMonths: run.setup.loan.termMonths },
     plan: { purchase: run.setup.purchase, loan: run.setup.loan, confirmedAt: run.confirmedAt },
     paths: { cash: viewPath('cash'), loan: viewPath('loan') },
-    timeline: [{ month: 0, cash: run.initial.paths.cash.netWorth, loan: run.initial.paths.loan.netWorth },
+    timeline: [{ month: 0, cash: remainingFunds(run.initial.paths.cash), loan: remainingFunds(run.initial.paths.loan) },
       ...run.history.map(m => ({ month: m.month,
-        cash: m.paths.cash.settled ? m.paths.cash.state.netWorth : null,
-        loan: m.paths.loan.settled ? m.paths.loan.state.netWorth : null }))],
+        cash: m.paths.cash.settled ? remainingFunds(m.paths.cash.state) : null,
+        loan: m.paths.loan.settled ? remainingFunds(m.paths.loan.state) : null }))],
     months: run.history.map(m => {
       const ledger = m.paths.cash.ledger ?? m.paths.loan.ledger;
       return { month: m.month, events: m.events,

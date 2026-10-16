@@ -24,3 +24,15 @@
 .employment-status h3 { margin-bottom: 8px; }
 .employment-status p { font-size: 13px; line-height: 1.8; margin: 6px 0; }
 .employment-status small { color: var(--muted); }
+
+.asset-breakdown { margin: 22px 0 0; }
+.asset-breakdown .balance-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 0; border-top: 1px solid var(--line); }
+.asset-breakdown dt { font-size: 14px; font-weight: 600; }
+.asset-breakdown dt small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.asset-breakdown dd { margin: 0; font-size: 19px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.asset-breakdown .balance-cash dd { color: #1355ED; }
+.asset-breakdown .balance-liabilities dd { font-size: 16px; color: var(--muted); }
+.balance-definition { font-size: 12px; color: var(--muted); margin: 16px 0 24px; }
+.chart-heading { font-size: 15px; margin-bottom: 8px; }
+@media (max-width: 1100px) { .asset-breakdown .balance-row { flex-direction: column; align-items: flex-start; gap: 5px; } .asset-breakdown dd { font-size: 18px; } }
+@media (max-width: 440px) { .asset-breakdown dd { font-size: 16px; } .asset-breakdown dt { font-size: 13px; } .asset-breakdown dt small { font-size: 10px; } .asset-breakdown .balance-liabilities dd { font-size: 14px; } }

@@ -69,10 +69,12 @@ export interface Explanation {
   facts: Fact[]; notice?: string;
 }
 export interface PublicPath {
-  netWorth: number; initialNetWorth: number; delta: number | null;
+  remainingFunds: number; initialFunds: number; purchasePaid: number; delta: number | null;
+  balances: { cash: number; investments: number; liabilities: number };
   lastSettledMonth: number; status: PathState['status']; failure?: PathState['failure'];
 }
 export interface PublicRun {
+  displayVersion: 'funds-v1';
   id: string; month: number; status: StoredRun['status']; profile: Pick<Profile, 'id' | 'name' | 'description'>;
   input: SetupInput; plan: { purchase: PurchasePlan; loan: LoanPlan; confirmedAt: string };
   paths: Record<PathKey, PublicPath>;

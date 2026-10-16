@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import Database from 'better-sqlite3';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { RunStore } from '../src/server/store';
 import { prepareSetup, searchLoanDocuments } from '../src/server/catalog';
 import { defaultInput } from '../src/domain/fixtures';
@@ -19,13 +23,18 @@ describe('持久化与接口投影', () => {
     expect(() => db.advance(run.id, 'one', 0, 'different')).toThrow('月份已经更新');
     expect(() => db.advance(run.id, 'one', 1, 'key')).toThrow('请求标识');
   });
-  it('会话隔离，展示投影不带后台资产与未来随机', () => {
+  it('会话隔离，展示分类资产但不暴露完整账本与未来随机', () => {
     const db = database(); const run = db.create('one', prepareSetup(defaultInput).setup);
     expect(() => db.get(run.id, 'two')).toThrow('找不到');
     expect(() => db.advance(run.id, 'two', 0, 'key')).toThrow('找不到');
     const view = publicRun(run);
     expect(view).not.toHaveProperty('tape'); expect(view).not.toHaveProperty('setup');
-    expect(view.paths.cash).not.toHaveProperty('fund'); expect(view.paths.cash).not.toHaveProperty('cash');
+    expect(view.paths.cash).not.toHaveProperty('fund');
+    expect(view.paths.cash.balances).toEqual({ cash: 6000000, investments: 4000000, liabilities: 0 });
+    expect(view.paths.loan.balances).toEqual({ cash: 20000000, investments: 4000000, liabilities: 14000000 });
+    for (const p of Object.values(view.paths)) {
+      const b = p.balances; expect(b.cash + b.investments).toBe(p.remainingFunds);
+    }
     expect(view.months).toHaveLength(0); expect(view.timeline).toHaveLength(1);
   });
   it('结束后禁止推进，相同经历重玩逐分相同', () => {
@@ -36,12 +45,40 @@ describe('持久化与接口投影', () => {
     for (let i = 0; i < 12; i++) db.advance(replay.id, 'one', i, `b${i}`);
     expect(db.get(replay.id, 'one').history).toEqual(db.get(original.id, 'one').history);
   });
-  it('失败后曲线断开，不比较不同月份净资产', () => {
+  it('失败后曲线断开，不比较不同月份剩余资金', () => {
     const db = database(); const tape = quietTape(); tape[0].medical = 0;
     const run = db.create('one', prepareSetup({ ...defaultInput, profileId: 'GAME-U02' }).setup, { tape });
     const view = db.advance(run.id, 'one', 0, 'key');
     expect(view.timeline[1].cash).toBeNull(); expect(view.summary.difference).toBeNull();
+    expect(view.paths.cash.balances).toEqual({ cash: 1000000, investments: 2000000, liabilities: 0 });
+    expect(view.paths.cash.remainingFunds).toBe(3000000);
+    expect(view.paths.cash).not.toHaveProperty('netWorth');
+    expect(view.paths.cash.balances).not.toHaveProperty('fixedAssets');
   });
+});
+it('历史幂等响应补充分类余额时只展示原月份，不泄漏后续余额', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'asset-view-test-'));
+  const path = join(dir, 'test.sqlite'); const db = new RunStore(path);
+  try {
+    const run = db.create('one', prepareSetup(defaultInput).setup, { tape: quietTape() });
+    const first = db.advance(run.id, 'one', 0, 'old-key');
+    db.advance(run.id, 'one', 1, 'next-key');
+    const old = JSON.parse(JSON.stringify(first));
+    delete old.displayVersion; delete old.paths.cash.balances; delete old.paths.loan.balances;
+    const raw = new Database(path);
+    raw.prepare('UPDATE requests SET response=? WHERE run_id=? AND request_key=?').run(JSON.stringify(old), run.id, 'old-key'); raw.close();
+    const retried = db.advance(run.id, 'one', 0, 'old-key');
+    expect(retried).toEqual(first);
+    expect(retried.paths.cash.balances.cash).toBe(6750000);
+    expect(retried.paths.cash.remainingFunds).toBe(10750000);
+    expect(retried.paths.loan.remainingFunds).toBe(24324093);
+    expect(retried.paths.cash.delta).toBe(750000);
+    expect(retried.paths.loan.delta).toBe(324093);
+    expect(retried.paths.loan.purchasePaid).toBe(6425907);
+    expect(retried.paths.cash.purchasePaid).toBe(20000000);
+    expect(retried.paths.loan.balances).toEqual({ cash: 20324093, investments: 4000000, liabilities: 13644093 });
+    expect(db.get(run.id, 'one').state.month).toBe(2);
+  } finally { db.close(); rmSync(dir, { recursive: true, force: true }); }
 });
 describe('资料和AI边界', () => {
   it('无匹配为空，不伪造贷款文档', () => {

@@ -50,7 +50,13 @@ export class RunStore {
       const cached = this.db.prepare('SELECT expected_month,response FROM requests WHERE run_id=? AND request_key=?').get(id, requestKey) as { expected_month: number; response: string } | undefined;
       if (cached) {
         if (cached.expected_month !== expectedMonth) throw new ServiceError(409, '请求标识已用于其他月份。');
-        return JSON.parse(cached.response) as PublicRun;
+        const response = JSON.parse(cached.response) as PublicRun;
+        if (response.displayVersion !== 'funds-v1') {
+          // Upgrade old cached views from their original month, never from the latest balances.
+          const history = run.history.slice(0, response.month);
+          return publicRun({ ...run, history, state: history.length ? stateFromResult(history.at(-1)!) : run.initial, status: response.status });
+        }
+        return response;
       }
       if (run.state.month !== expectedMonth) throw new ServiceError(409, '月份已经更新，请同步进度后继续。');
       if (run.status === 'ended') throw new ServiceError(409, '本局已经结束。');
