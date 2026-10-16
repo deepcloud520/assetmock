@@ -43,3 +43,5 @@ prisma/*.db-journal
 prisma/*.db-wal
 prisma/*.db-shm
 *.paper-lock
+
+.next-e2e/

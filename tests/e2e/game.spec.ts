@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import Database from 'better-sqlite3';
 
 function setTape(id: string, changes: Record<number, Record<string, number>> = {}) {
-  const db = new Database('./data/e2e.sqlite');
+  const db = new Database('./.local-data/e2e/game.sqlite');
   try {
     const row = db.prepare('SELECT body FROM runs WHERE id=?').get(id) as { body: string };
     const run = JSON.parse(row.body);
@@ -123,7 +123,7 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
   } }));
   await page.goto('/legacy'); await page.getByRole('button', { name: '选择林舟' }).click();
   const sid = (await page.context().cookies()).find(c => c.name === 'life-session')!.value;
-  const db = new Database('./data/e2e.sqlite');
+  const db = new Database('./.local-data/e2e/game.sqlite');
   db.prepare('INSERT INTO search_documents VALUES (?,?,?)').run(source.id, sid, JSON.stringify(source)); db.close();
   await page.getByRole('button', { name: '读取资料，整理方案' }).click();
   await expect(page.getByRole('link', { name: source.title })).toHaveAttribute('href', source.url);

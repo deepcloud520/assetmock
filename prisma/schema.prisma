@@ -1637,3 +1637,24 @@ model PaperCondition {
   @@index([accountId, status])
   @@unique([workspaceId, childOrderId])
 }
+
+model SimulationOpening {
+  id String @id
+  workspaceId String
+  sessionId String
+  body String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, sessionId])
+}
+model SimulationReport {
+  runId String @id
+  workspaceId String
+  sessionId String
+  goalId String?
+  version Int @default(-1)
+  sourceJson String
+  reportJson String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([workspaceId, sessionId])
+}
