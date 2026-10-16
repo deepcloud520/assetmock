@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import type { LoanOffer, LoanResearch, SetupInput } from '@/domain/types';
 
-export function LoanResearchPanel({ research, input, disabled, onApply }: {
-  research: LoanResearch; input: SetupInput; disabled: boolean;
+export function LoanResearchPanel({ research, input, disabled, onApply, target = 'car' }: {
+  research: LoanResearch; input: Pick<SetupInput, 'downPaymentPercent' | 'termMonths'>; disabled: boolean; target?: 'car' | 'home';
   onApply: (sourceId: string, rate: string, fee: number) => Promise<void>;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function LoanResearchPanel({ research, input, disabled, onApply }: {
     setSelected(id); setRate(extracted?.annualRatePercent ?? ''); setFee(extracted?.feeYuan?.toString() ?? ''); setAccepted(false);
   }
   return <section className="loan-research" aria-label="联网贷款资料">
-    <h2>查到的购车资料</h2><p className="hint">{research.notice}</p>
+    <h2>查到的{target === 'home' ? '购房' : '购车'}资料</h2><p className="hint">{research.notice}</p>
     {research.documents.map(doc => <article className="search-result" key={doc.id}>
       <div className="source-meta">豆包搜索 Custom · {doc.site}</div>
       <h3><a href={doc.url} target="_blank" rel="noopener noreferrer">{doc.title}</a></h3>

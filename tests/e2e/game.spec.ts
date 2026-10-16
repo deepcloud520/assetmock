@@ -13,7 +13,7 @@ function setTape(id: string, changes: Record<number, Record<string, number>> = {
 
 test('完整界面：角色、方案、确认、十八月、刷新和相同经历重玩', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/legacy');
   await expect(page.getByRole('button', { name: '选择林舟' })).toBeVisible();
   await page.screenshot({ path: 'test-results/profiles-desktop.png', fullPage: true });
   await page.getByRole('button', { name: '选择林舟' }).click();
@@ -91,7 +91,7 @@ test('真实API：会话隔离、重试、竞争、未来解释拒绝', async ({
 
 test('手机端：随机事件、失败路径与键盘可操作', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/'); await page.getByRole('button', { name: '选择陈夏' }).click();
+  await page.goto('/legacy'); await page.getByRole('button', { name: '选择陈夏' }).click();
   await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的18个月' }).click();
   await expect(page.getByTestId('cash-funds')).toBeVisible();
   const id = await page.evaluate(() => localStorage.getItem('life-run'));
@@ -121,7 +121,7 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
     input, offers: [], matches: [], source: 'rules', notice: '搜索结果验收夹具', trace: [], supported: true,
     research: { status: 'ok', query: '汽车贷款', notice: '本条为固定搜索夹具。', documents: [source], drafts: [] },
   } }));
-  await page.goto('/'); await page.getByRole('button', { name: '选择林舟' }).click();
+  await page.goto('/legacy'); await page.getByRole('button', { name: '选择林舟' }).click();
   const sid = (await page.context().cookies()).find(c => c.name === 'life-session')!.value;
   const db = new Database('./data/e2e.sqlite');
   db.prepare('INSERT INTO search_documents VALUES (?,?,?)').run(source.id, sid, JSON.stringify(source)); db.close();
@@ -155,7 +155,7 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
 });
 
 test('收入中断持续三个月，奖金独立到账，复职后工资永久降至80%', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: '选择林舟' }).click();
+  await page.goto('/legacy'); await page.getByRole('button', { name: '选择林舟' }).click();
   await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的18个月' }).click();
   await expect(page.getByTestId('cash-funds')).toBeVisible();
   const id = await page.evaluate(() => localStorage.getItem('life-run')); setTape(id!, { 3: { jobLoss: 0 } });
