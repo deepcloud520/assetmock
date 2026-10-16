@@ -18,3 +18,9 @@
 @media (max-width: 600px) { .web-conditions .fields { grid-template-columns: 1fr; } .web-conditions { padding: 16px; } }
 
 .web-conditions .fields label:first-child { grid-column: auto; }
+
+.employment-status { padding: 16px; margin: 16px 0; background: #edf3ff; border-left: 3px solid #267DFF; border-radius: 4px; }
+.employment-status.job-seeking { background: #fff3e9; border-left-color: #FF5D00; }
+.employment-status h3 { margin-bottom: 8px; }
+.employment-status p { font-size: 13px; line-height: 1.8; margin: 6px 0; }
+.employment-status small { color: var(--muted); }

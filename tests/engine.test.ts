@@ -63,10 +63,31 @@ describe('事件状态与结算', () => {
     expect(history.slice(0, 4).map(m => m.paths.cash.ledger?.medical)).toEqual([5000000, 0, 0, 5000000]);
     expect(history[1].events.some(e => e.kind === 'medical')).toBe(false);
   });
-  it('失业3个月，第4月恢复，未额外扣工资', () => {
+  it('失业3个月，第4月以80%工资重新就业并持续生效', () => {
     const { history } = simulate(setup(), { 1: { jobLoss: 0 }, 2: { jobLoss: 0 }, 3: { jobLoss: 0 } });
-    expect(history.slice(0, 4).map(m => m.paths.cash.ledger?.salary)).toEqual([0, 0, 0, 1800000]);
+    expect(history.slice(0, 6).map(m => m.paths.cash.ledger?.salary)).toEqual([0, 0, 0, 1440000, 1440000, 1440000]);
+    expect(history.slice(0, 6).map(m => m.paths.loan.ledger?.salary)).toEqual([0, 0, 0, 1440000, 1440000, 1440000]);
+    expect(history[3].events.some(e => e.kind === 'reemployment')).toBe(true);
     expect(history[0].paths.cash.ledger?.netChange).toBe(-1250000);
+  });
+  it('第3月失业时第4月奖金不代表工资恢复，第6月才按新工资结算', () => {
+    const { history } = simulate(setup(), { 3: { jobLoss: 0 } });
+    expect(history.slice(2, 6).map(m => m.paths.cash.ledger?.salary)).toEqual([0, 0, 0, 1440000]);
+    expect(history[3].paths.cash.ledger?.bonus).toBe(2000000);
+    expect(history[3].paths.cash.ledger?.netChange).toBe(750000);
+    expect(history[4].life.unemployedUntil).toBe(6);
+  });
+  it('复职当月不重复失业，再次失业以当时工资为基数降薪', () => {
+    const { history } = simulate(setup(), { 1: { jobLoss: 0 }, 4: { jobLoss: 0 }, 5: { jobLoss: 0 } });
+    expect(history[3].events.map(e => e.kind)).toEqual(['reemployment']);
+    expect(history.slice(4, 9).map(m => m.paths.loan.ledger?.salary)).toEqual([0, 0, 0, 1152000, 1152000]);
+    expect(history[7].life.currentSalary).toBe(1152000);
+  });
+  it('规则快照未配置再就业比例时保持旧局收入，不追溯改账', () => {
+    const s = setup(); delete s.rules.reemploymentSalaryRatio; s.rules.version = '0.1.0';
+    const { history } = simulate(s, { 1: { jobLoss: 0 } });
+    expect(history.slice(0, 5).map(m => m.paths.cash.ledger?.salary)).toEqual([0, 0, 0, 1800000, 1800000]);
+    expect(history[3].life.currentSalary).toBeUndefined();
   });
   it('奖金延期只在第7月到账一次，失业不取消奖金', () => {
     const { history } = simulate(setup(), { 4: { bonusDelay: 0, jobLoss: 0 }, 7: { bonusDelay: 0 } });

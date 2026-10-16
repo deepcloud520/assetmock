@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { WealthChart } from './chart';
+import { EmploymentStatus } from './employment-status';
 import { LoanResearchPanel, OfferSource } from './loan-research';
 import { money } from '@/domain/money';
 import { defaultInput } from '@/domain/fixtures';
@@ -174,21 +175,23 @@ export function Simulator() {
           <OfferSource offer={calculation.loan} />{calculation.loan.customized && <p className="notice">自定义假设：首付或期限已修改。</p>}
           {calculation.errors.map(message => <p className="error" key={message}>{message}</p>)}
         </> : <p className="hint">正在核对参数…</p>}
-        <details className="rules"><summary>本局事件规则与资金处理</summary><p>医疗每资格月1%，自付5万元，治疗3个月；失业每资格月2%，停薪3个月；奖金原到账月20%概率延后3个月；市场每月5%概率下跌20%。全部是游戏参数，没有保底。</p><p>两条路径共用事件。现金不足会自动卖基金，仍不足则路径结束；车辆不出售。每月汇总结算，不检查具体账单日。</p><p>2026年11月至2027年10月。车价作为初始模拟估值，用车费为原生活费之外的新增支出，不另外叠加税费与保险。</p></details>
+        <details className="rules"><summary>本局事件规则与资金处理</summary><p>医疗每资格月1%，自付5万元，治疗3个月；失业每资格月2%，从触发月起连续停薪3个月；{replayId && run?.legacyEmploymentRule ? '本次沿用旧规则，恢复原工资；' : '之后以失业前80%的工资重新就业，再就业当月不重复失业；'}奖金原到账月20%概率延后3个月；市场每月5%概率下跌20%。全部是游戏参数，没有保底。</p><p>两条路径共用事件。现金不足会自动卖基金，仍不足则路径结束；车辆不出售。每月汇总结算，不检查具体账单日。</p><p>2026年11月至2027年10月。车价作为初始模拟估值，用车费为原生活费之外的新增支出，不另外叠加税费与保险。</p></details>
         <label className="check"><input type="checkbox" disabled={!calculation || !!busy || calculation.errors.length > 0} checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />我已核对参数，理解这是使用已确认贷款假设和游戏概率的模拟。</label>
         <button className="primary start" disabled={!!busy || !confirmed || !calculation || calculation.errors.length > 0} onClick={() => void start()}>{replayId ? '用相同经历重新开始' : '开始我的十二个月'}</button>
       </section></div></main>}
 
     {screen === 'game' && run && <main className="game-page"><div className="game-heading"><div><p className="chapter">{run.profile.name}的两种未来</p><h1>{run.status === 'ended' ? '回看这一年的选择。' : dateLabel(run.month)}</h1><p className="muted">{run.month === 0 ? '车已买好，两条路径从这里出发。' : `已揭晓第 ${run.month} / 12 个月`}</p></div><div className="progress-wheel" style={{ '--progress': `${run.month / 12 * 100}%` } as React.CSSProperties}><span>{String(run.month).padStart(2, '0')}<small>/ 12个月</small></span></div></div>
+      {run.legacyEmploymentRule && <p className="notice">本局保留旧规则：停薪3个月后恢复原工资。选择「重新开一局」使用降薪20%的新规则；相同经历重玩会沿用旧规则。</p>}
       <div className="game-grid"><section className="wealth-panel"><div className="wealth-pair">{(['cash', 'loan'] as const).map(key => { const p = run.paths[key]; return <div key={key} className={`wealth ${key}`}><h2><span className={`path-dot ${key}-dot`} />{key === 'cash' ? '全款路径' : '贷款路径'}</h2><small>{p.status === 'failed' ? `最后成功结算：第${p.lastSettledMonth}月` : '净资产'}</small><strong data-testid={`${key}-networth`}>¥{money(p.netWorth)}</strong><p className={p.delta !== null && p.delta < 0 ? 'negative' : 'positive'}>{p.delta === null ? '本月未结算' : `${run.month === 0 ? '本月变化' : '较上月'} ${p.delta >= 0 ? '+' : '−'}¥${money(Math.abs(p.delta))}`}</p>{p.failure && <div className="failure">第{p.failure.month}月资金不足<br /><small>缺口 ¥{money(p.failure.shortfall)}，路径已结束</small></div>}</div>; })}</div>
         <WealthChart run={run} /><div className="chart-caption"><span>同一段经历 · 相同外部事件</span><span>净资产包含车辆估值，已扣除贷款余本</span></div>
         <div className="month-strip" aria-label="已揭晓月份">{Array.from({ length: 12 }, (_, i) => <span key={i} className={i + 1 <= run.month ? 'revealed' : ''}>{i + 1}</span>)}</div>
         {run.status !== 'ended' ? <button className="primary next" disabled={!!busy} onClick={() => void advance()}>揭晓下个月 <span>第 {run.month + 1} 个月</span></button> : <div className="replay-actions"><button className="primary" onClick={() => restart(true)}>相同经历再试一次</button><button className="secondary" onClick={() => restart(false)}>重新开一局</button></div>}
       </section><aside className="events-panel"><h2>{run.status === 'ended' ? '本局回望' : '这个月，发生了什么'}</h2>
         {!latest && <div className="quiet-month"><span className="event-icon">◷</span><h3>未来还没有揭晓</h3><p>点击下个月，看看生活如何继续。两条路径将经历同样的事件。</p></div>}
-        {latest && latest.events.length === 0 && <div className="quiet-month"><span className="event-icon">☀</span><h3>本月没有新事件</h3><p>平常的月份也是生活。收入、支出、还款和车辆折旧仍在发生。</p></div>}
-        {latest?.events.map(e => <article className={`event-card ${e.kind}`} key={e.kind}><span className="event-label">随机事件</span><h3>{e.title}</h3><p>{e.description}</p></article>)}
-        {latest && (latest.treating || latest.unemployed) && <div className="ongoing"><b>持续中的状态</b>{latest.treating && <p>治疗中 · 期间不重复抽医疗事件</p>}{latest.unemployed && <p>收入中断中 · 生活与还款继续</p>}</div>}
+        {latest && <EmploymentStatus month={latest} />}
+        {latest && latest.events.length === 0 && <div className="quiet-month"><span className="event-icon">☀</span><h3>本月没有新事件</h3><p>{latest.unemployed ? '没有新的随机事件，仍在求职停薪期；生活支出、还款和车辆折旧继续结算。' : '平常的月份也是生活。收入、支出、还款和车辆折旧仍在发生。'}</p></div>}
+        {latest?.events.map(e => <article className={`event-card ${e.kind}`} key={e.kind}><span className="event-label">{e.kind === 'reemployment' ? '状态变化' : '随机事件'}</span><h3>{e.title}</h3><p>{e.description}</p></article>)}
+        {latest?.treating && <div className="ongoing"><b>持续中的状态</b><p>治疗中 · 期间不重复抽医疗事件</p></div>}
         {run.month > 0 && <section className="explanation"><h3>{explaining ? '正在整理解释…' : explanation?.source === 'model' ? 'AI 复盘' : '规则说明'}</h3>{explanation?.paragraphs.map((p, i) => <div key={i}><p>{p.text}</p><small>依据：{p.factIds.map(id => explanation.facts.find(f => f.id === id)?.text).join(' ')}</small></div>)}{!explanation?.paragraphs.length && <p>{run.status === 'ended' ? '两条路径的差异来自利息、费用及面对同样事件时的资金余量。请结合下方已结算事实查看。' : '数值已完成结算。每一笔变化都可在下方月份记录中核对。'}</p>}{explanation?.notice && <small>{explanation.notice}</small>}</section>}
       </aside></div>
       {run.status === 'ended' && <section className="ending"><h2>这次经历说明了什么</h2><div className="ending-paths">{(['cash', 'loan'] as const).map(key => <div key={key}><h3>{key === 'cash' ? '全款' : '贷款'} · {run.paths[key].status === 'completed' ? '完成十二个月' : '提前结束'}</h3><p>相对开局净资产变化：¥{money(run.paths[key].netWorth - run.paths[key].initialNetWorth)}</p></div>)}</div>{run.summary.facts.map(f => <p key={f.id}>{f.text}</p>)}{run.summary.comparable && <p>相同结算月份，全款减贷款净资产差额：¥{money(run.summary.difference ?? 0)}</p>}</section>}

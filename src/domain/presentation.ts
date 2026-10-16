@@ -4,6 +4,8 @@ import type { Fact, MonthResult, PublicRun, StoredRun } from './types';
 
 export function monthFacts(result: MonthResult): Fact[] {
   const facts: Fact[] = [];
+  const monthsRemaining = Math.max(0, result.life.unemployedUntil - result.month);
+  if (monthsRemaining > 0) facts.push({ id: 'employment.unemployed', text: `本月仍在求职，工资为0；含本月还需停薪${monthsRemaining}个月，按本局规则第${result.life.unemployedUntil}月重新就业。奖金与工资分别结算，奖金到账不代表已经找到工作。` });
   for (const key of pathKeys) {
     const title = key === 'cash' ? '全款' : '贷款';
     const { state, ledger, settled } = result.paths[key];
@@ -57,9 +59,15 @@ export function publicRun(run: StoredRun): PublicRun {
       ...run.history.map(m => ({ month: m.month,
         cash: m.paths.cash.settled ? m.paths.cash.state.netWorth : null,
         loan: m.paths.loan.settled ? m.paths.loan.state.netWorth : null }))],
-    months: run.history.map(m => ({ month: m.month, events: m.events,
-      treating: m.month < m.life.medicalUntil, unemployed: m.month < m.life.unemployedUntil, facts: monthFacts(m) })),
+    months: run.history.map(m => {
+      const ledger = m.paths.cash.ledger ?? m.paths.loan.ledger;
+      return { month: m.month, events: m.events,
+        treating: m.month < m.life.medicalUntil, unemployed: m.month < m.life.unemployedUntil, facts: monthFacts(m),
+        employment: { salary: ledger?.salary ?? null, bonus: ledger?.bonus ?? null,
+          monthsRemaining: Math.max(0, m.life.unemployedUntil - m.month), resumed: m.events.some(e => e.kind === 'reemployment') } };
+    }),
     summary: buildSummary(run),
-    ruleDescription: '游戏参数：医疗每资格月1%，失业每资格月2%，奖金原到账月20%，市场每月5%；均无保底。按月汇总结算。',
+    legacyEmploymentRule: run.setup.rules.reemploymentSalaryRatio === undefined,
+    ruleDescription: `游戏参数：医疗每资格月1%，失业每资格月2%，奖金原到账月20%，市场每月5%；均无保底。连续停薪${run.setup.rules.unemploymentDuration}个月后重新就业，${run.setup.rules.reemploymentSalaryRatio === undefined ? '沿用本局旧规则恢复原工资' : `新工资为失业前的${Number(run.setup.rules.reemploymentSalaryRatio) * 100}%，再就业当月不重复失业`}。按月汇总结算。`,
   };
 }

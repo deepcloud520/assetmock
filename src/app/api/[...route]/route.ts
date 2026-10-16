@@ -49,7 +49,7 @@ function prepareForSession(raw: unknown, sid: string) {
 async function explanationRequest(run: StoredRun, input: unknown, sid: string) {
   const args = z.object({ month: z.number().int().min(1).max(12), final: z.boolean().default(false) }).strict().parse(input);
   if (args.month > run.state.month || (args.final && run.status !== 'ended')) throw new ServiceError(422, '只能解释已揭晓的结果。');
-  const key = args.final ? 'final' : `month:${args.month}`;
+  const key = args.final ? 'final' : `employment-v1:month:${args.month}`;
   const cached = store().cached(run.id, key) as Explanation | undefined;
   if (cached) return cached;
   const facts = args.final ? publicRun(run).summary.facts : monthFacts(run.history[args.month - 1]);

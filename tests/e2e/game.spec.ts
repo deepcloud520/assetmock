@@ -131,3 +131,35 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
   expect((await other.post('/api/plans/from-search', { data: { sourceId: source.id, annualRatePercent: '4.8', feeYuan: 0, downPaymentPercent: 30, termMonths: 36, acknowledged: true } })).status()).toBe(404);
   await other.dispose();
 });
+
+test('收入中断持续三个月，奖金独立到账，复职后工资永久降至80%', async ({ page }) => {
+  await page.goto('/'); await page.getByRole('button', { name: '选择林舟' }).click();
+  await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的十二个月' }).click();
+  await expect(page.getByTestId('cash-networth')).toBeVisible();
+  const id = await page.evaluate(() => localStorage.getItem('life-run')); setTape(id!, { 3: { jobLoss: 0 } });
+  const employment = page.getByRole('region', { name: '就业与收入' });
+  for (let month = 1; month <= 7; month++) {
+    await page.getByRole('button', { name: /揭晓下个月/ }).click();
+    await expect(page.getByText(`已揭晓第 ${month} / 12 个月`, { exact: true })).toBeVisible();
+    if (month >= 3 && month <= 5) {
+      await expect(employment).toContainText('持续求职中');
+      await expect(employment).toContainText('本月工资：¥0.00');
+      await expect(employment).toContainText(`含本月还需停薪 ${6 - month} 个月`);
+    }
+    if (month === 4) {
+      await expect(employment).toContainText('本月奖金：¥20,000.00');
+      await expect(employment).toContainText('不代表工资恢复');
+      await page.reload(); await expect(employment).toContainText('本月工资：¥0.00');
+      await page.screenshot({ path: 'test-results/unemployed-bonus-desktop.png', fullPage: true });
+    }
+    if (month >= 6) {
+      await expect(employment).toContainText('本月工资：¥14,400.00');
+      if (month === 6) {
+        await expect(page.getByText('找到一份新工作', { exact: true })).toBeVisible();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: 'test-results/reemployment-mobile.png', fullPage: true });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+      }
+    }
+  }
+});
