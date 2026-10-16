@@ -13,7 +13,7 @@ function setup(index = 0): Setup {
 function simulate(s: Setup, changes: Record<number, Partial<Draws>> = {}) {
   let state = createInitialState(s);
   const history = [];
-  for (let month = 1; month <= 12; month++) {
+  for (let month = 1; month <= s.rules.months; month++) {
     if (Object.values(state.paths).every(p => p.status !== 'running')) break;
     const result = advanceMonth(state, { ...quiet, ...changes[month] }, s);
     history.push(result); state = stateFromResult(result);
@@ -30,18 +30,22 @@ describe('金额基准与不变量', () => {
     expect(history[0].paths.loan.ledger?.interest).toBe(70000);
     expect(history[0].paths.cash.state.netWorth).toBe(30550000);
     expect(history[0].paths.loan.state.netWorth).toBe(30480000);
-    expect(state.paths.loan.loanBalance).toBe(9609686);
-    expect(state.paths.loan.car).toBe(17600000);
-    expect(history.reduce((v, m) => v + m.paths.loan.ledger!.interest, 0)).toBe(720570);
-    expect(state.paths.cash.netWorth).toBe(38600000);
-    expect(state.paths.loan.netWorth).toBe(37879430);
+    expect(history[11].paths.loan.state.loanBalance).toBe(9609686);
+    expect(history[11].paths.loan.state.car).toBe(17600000);
+    expect(history.slice(0, 12).reduce((v, m) => v + m.paths.loan.ledger!.interest, 0)).toBe(720570);
+    expect(history[11].paths.cash.state.netWorth).toBe(38600000);
+    expect(state.paths.cash.netWorth).toBe(41900000);
+    expect(state.paths.loan.netWorth).toBe(40919670);
+    expect(state.paths.loan.loanBalance).toBe(7314004);
+    expect(state.paths.loan.car).toBe(16400000);
+    expect(history[11].paths.loan.state.netWorth).toBe(37879430);
   });
   it.each([0, 1, 2, 3, 4])('角色%s可以完成默认无事件局', i => {
     const s = setup(i); const { state, history } = simulate(s);
-    expect(state.month).toBe(12);
+    expect(state.month).toBe(18);
     expect(state.paths.cash.status).toBe('completed'); expect(state.paths.loan.status).toBe('completed');
     for (const month of history) for (const result of Object.values(month.paths)) assertState(result.state);
-    expect(state.paths.cash.netWorth).toBe(s.profile.cash + s.profile.fund - s.profile.debt + 12 * (s.profile.salary - s.profile.living - 150000 - 200000) + s.profile.bonus);
+    expect(state.paths.cash.netWorth).toBe(s.profile.cash + s.profile.fund - s.profile.debt + 18 * (s.profile.salary - s.profile.living - 150000 - 200000) + s.profile.bonus);
     expect(state.paths.cash.debt).toBe(0);
   });
   it('零息与正常利率最后一期归零', () => {
@@ -131,5 +135,26 @@ describe('事件状态与结算', () => {
   it('概率阈值严格小于，不使用保底', () => {
     const { history } = simulate(setup(), { 1: { medical: 10000, jobLoss: 20000, marketDrop: 50000 }, 4: { bonusDelay: 200000 } });
     expect(history.flatMap(m => m.events)).toHaveLength(0);
+  });
+});
+
+
+describe('18个月周期边界', () => {
+  it('12期车贷及既有分期还清后，第13至18月不再扣款', () => {
+    const s = calculateSetup({ profileId: profiles[2].id, price: 20000000, offerId: 'loan-a', downPaymentPercent: 30, termMonths: 12 }, profiles[2], readCatalog()[0], rules);
+    const { state, history } = simulate(s);
+    expect(history[11].paths.loan.state.loanBalance).toBe(0);
+    expect(history[11].paths.loan.state.debt).toBe(0);
+    for (const m of history.slice(12)) {
+      expect(m.paths.loan.ledger).toMatchObject({ debtPrincipal: 0, loanPrincipal: 0, interest: 0 });
+    }
+    expect(state.month).toBe(18);
+    expect(state.paths.loan.status).toBe('completed');
+  });
+  it('第13月仍可抽事件，第16月正常重新就业，第18月事件会入账', () => {
+    const { history } = simulate(setup(), { 13: { jobLoss: 0 }, 18: { medical: 0, marketDrop: 0 } });
+    expect(history.slice(12, 16).map(m => m.paths.cash.ledger?.salary)).toEqual([0, 0, 0, 1440000]);
+    expect(history[17].paths.cash.ledger).toMatchObject({ medical: 5000000, fundLoss: 800000 });
+    expect(history[17].paths.cash.state.status).toBe('completed');
   });
 });

@@ -17,7 +17,7 @@ async function main() {
   const db = new RunStore(':memory:');
   const setup = prepareSetup(result.input);
   if (setup.errors.length) throw new Error('方案不满足开局条件');
-  const run = db.create('live-test', setup.setup, { tape: Array.from({ length: 12 }, () => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999 })) });
+  const run = db.create('live-test', setup.setup, { tape: Array.from({ length: setup.setup.rules.months }, () => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999 })) });
   const view = db.advance(run.id, 'live-test', 0, 'live-first-month');
   const facts = monthFacts(db.get(run.id, 'live-test').history[0]);
   db.close();
