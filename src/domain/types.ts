@@ -75,7 +75,7 @@ export interface PublicPath {
 }
 export interface PublicRun {
   displayVersion: 'funds-v1';
-  id: string; month: number; status: StoredRun['status']; profile: Pick<Profile, 'id' | 'name' | 'description'>;
+  id: string; month: number; totalMonths: number; status: StoredRun['status']; profile: Pick<Profile, 'id' | 'name' | 'description'>;
   input: SetupInput; plan: { purchase: PurchasePlan; loan: LoanPlan; confirmedAt: string };
   paths: Record<PathKey, PublicPath>;
   timeline: { month: number; cash: number | null; loan: number | null }[];

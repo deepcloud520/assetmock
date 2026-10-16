@@ -5,14 +5,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RunStore } from '../src/server/store';
 import { prepareSetup, searchLoanDocuments } from '../src/server/catalog';
-import { defaultInput } from '../src/domain/fixtures';
+import { defaultInput, rules } from '../src/domain/fixtures';
 import { publicRun } from '../src/domain/presentation';
 import { fallbackGoal, validateExplanation } from '../src/server/ai';
 
 const databases: RunStore[] = [];
 afterEach(() => databases.splice(0).forEach(db => db.close()));
 function database() { const db = new RunStore(':memory:'); databases.push(db); return db; }
-function quietTape() { return Array.from({ length: 12 }, () => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999 })); }
+function quietTape(months = rules.months) { return Array.from({ length: months }, () => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999 })); }
 describe('持久化与接口投影', () => {
   it('重复键返回原响应，不同键竞争旧月份失败', () => {
     const db = database(); const run = db.create('one', prepareSetup(defaultInput).setup, { tape: quietTape() });
@@ -39,10 +39,10 @@ describe('持久化与接口投影', () => {
   });
   it('结束后禁止推进，相同经历重玩逐分相同', () => {
     const db = database(); const original = db.create('one', prepareSetup(defaultInput).setup, { tape: quietTape() });
-    for (let i = 0; i < 12; i++) db.advance(original.id, 'one', i, `a${i}`);
-    expect(() => db.advance(original.id, 'one', 12, 'extra')).toThrow('已经结束');
+    for (let i = 0; i < rules.months; i++) db.advance(original.id, 'one', i, `a${i}`);
+    expect(() => db.advance(original.id, 'one', rules.months, 'extra')).toThrow('已经结束');
     const replay = db.create('one', original.setup, { tape: original.tape });
-    for (let i = 0; i < 12; i++) db.advance(replay.id, 'one', i, `b${i}`);
+    for (let i = 0; i < rules.months; i++) db.advance(replay.id, 'one', i, `b${i}`);
     expect(db.get(replay.id, 'one').history).toEqual(db.get(original.id, 'one').history);
   });
   it('失败后曲线断开，不比较不同月份剩余资金', () => {
@@ -64,7 +64,7 @@ it('历史幂等响应补充分类余额时只展示原月份，不泄漏后续�
     const first = db.advance(run.id, 'one', 0, 'old-key');
     db.advance(run.id, 'one', 1, 'next-key');
     const old = JSON.parse(JSON.stringify(first));
-    delete old.displayVersion; delete old.paths.cash.balances; delete old.paths.loan.balances;
+    delete old.displayVersion; delete old.totalMonths; delete old.paths.cash.balances; delete old.paths.loan.balances;
     const raw = new Database(path);
     raw.prepare('UPDATE requests SET response=? WHERE run_id=? AND request_key=?').run(JSON.stringify(old), run.id, 'old-key'); raw.close();
     const retried = db.advance(run.id, 'one', 0, 'old-key');
@@ -99,4 +99,24 @@ describe('资料和AI边界', () => {
     expect(() => validateExplanation({ paragraphs: [{ factIds: ['cash.change'], text: '赚了100万元' }] }, facts)).toThrow();
     expect(validateExplanation({ paragraphs: [{ factIds: ['cash.change'], text: '本月变化已经反映在净资产中。' }] }, facts)).toHaveLength(1);
   });
+});
+
+
+it('新局生成72次抽取，旧12月局和相同经历重玩保留周期', () => {
+  const db = database(); const setup = prepareSetup(defaultInput).setup;
+  const fresh = db.create('one', setup);
+  expect(fresh.tape).toHaveLength(72 / 4);
+  expect(publicRun(fresh).totalMonths).toBe(18);
+  expect(fresh.tape.flatMap(draw => Object.values(draw))).toHaveLength(72);
+  for (const draw of fresh.tape.flatMap(draw => Object.values(draw))) {
+    expect(Number.isInteger(draw)).toBe(true); expect(draw).toBeGreaterThanOrEqual(0); expect(draw).toBeLessThan(1000000);
+  }
+  setup.rules.months = 12; setup.rules.version = '0.1.1';
+  const old = db.create('one', setup, { tape: quietTape(12) });
+  for (let i = 0; i < 12; i++) db.advance(old.id, 'one', i, `old-${i}`);
+  expect(publicRun(db.get(old.id, 'one'))).toMatchObject({ totalMonths: 12, month: 12, status: 'ended' });
+  const replay = db.create('one', old.setup, { tape: old.tape });
+  expect(publicRun(replay).totalMonths).toBe(12);
+  expect(replay.tape).toEqual(old.tape);
+  expect(() => db.create('one', prepareSetup(defaultInput).setup, { tape: old.tape })).toThrow('周期一致');
 });

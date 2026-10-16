@@ -14,7 +14,7 @@ export const profiles: Profile[] = [
 }));
 
 export const rules: RuleSet = {
-  version: '0.1.1', months: 12, startMonth: '2026-11',
+  version: '0.1.2', months: 18, startMonth: '2026-11',
   probabilities: { medical: 10000, jobLoss: 20000, bonusDelay: 200000, marketDrop: 50000 },
   medicalCost: 5000000, medicalDuration: 3, unemploymentDuration: 3, reemploymentSalaryRatio: '0.8',
   bonusDelayMonths: 3, marketDropRate: '0.2',
