@@ -1,3 +1,4 @@
+import { modelConfig } from "@/lib/model-config";
 import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { model, ruleExplanation, validateExplanation } from '../ai';
@@ -35,7 +36,7 @@ export async function prepare(target: Target, profileId: string, goal: string, s
     if (!research.documents.length && research.status === 'ok') { research.status = 'empty'; research.notice = '未找到匹配当前目标的资料，使用预设示例。'; }
     store().saveDocuments(sid, research.documents); trace.push(research.notice);
   }
-  if (process.env.LLM_API_KEY?.trim()) {
+  if (modelConfig('LLM').API_KEY?.trim()) {
     let calculated: Input | undefined;
     try {
       trace.push('服务端已读取虚构角色', '服务端已核对目标对应的资料');
@@ -89,7 +90,7 @@ export function candidates(run: Run): Suggestion[] {
 export async function recommend(run: Run) {
   const options = candidates(run);
   let selected = options.find(c => c.verified), source: 'model' | 'rules' = 'rules';
-  if (selected && process.env.LLM_API_KEY?.trim()) {
+  if (selected && modelConfig('LLM').API_KEY?.trim()) {
     try {
       const response = await generateText({ model: model(true), maxRetries: 0, maxOutputTokens: 4096, abortSignal: AbortSignal.timeout(25000), system: '从已通过引擎验证的候选中选择一个值得玩家重玩的变化，不保证更优。仅返回JSON {"id":"候选ID"}。不得创建候选。', prompt: JSON.stringify(options.filter(c => c.verified)) });
       const id = z.object({ id: z.string() }).parse(JSON.parse(response.text.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''))).id;
@@ -101,7 +102,7 @@ export async function recommend(run: Run) {
 export async function explain(run: Run) {
   const view = toPublic(run);
   const facts = [{ id: 'context:target', text: `本局目标是${run.setup.input.target === 'home' ? '购房' : '购车'}，已结算${run.state.month}个月。${run.pending ? `第${run.pending.month}月事件待处理，尚未结算。` : ''}` }, ...(run.status === 'ended' ? view.summary.facts : view.facts)];
-  if (!process.env.LLM_API_KEY?.trim()) return ruleExplanation(facts, 'AI 暂不可用，显示规则说明。');
+  if (!modelConfig('LLM').API_KEY?.trim()) return ruleExplanation(facts, 'AI 暂不可用，显示规则说明。');
   let invalid = '';
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

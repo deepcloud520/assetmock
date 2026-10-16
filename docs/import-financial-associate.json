@@ -1,0 +1,1208 @@
+{
+  "source": "likelisa/financial_associate",
+  "committedTree": "f35cdfeada0a848ef9452a5faca7762eb1f0a7aa",
+  "localHead": "01ea34edec0f6c53d9fd50761f28936a885fb18d",
+  "includesWorkingTree": true,
+  "files": [
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "b15986a838d2ccd91d22f255cd4b23335c17e2a37c636d017ff69f686f2e0885"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "4ff3b06b3568eae9f79810421545f2274756a39a39e4470fcb9db1377a4129fa"
+    },
+    {
+      "path": "docs/car-purchase-mvp.md",
+      "sha256": "5584ecf9f63960aff977b4f86346339d536cd581894137f5813ba7636486f2bb"
+    },
+    {
+      "path": "docs/financial-life-simulation-mvp-acceptance.md",
+      "sha256": "fac62729d5f2bfb7b75d3af1c728b39c07d98e060261e4fcaf8ff985e83af22b"
+    },
+    {
+      "path": "docs/financial-life-simulation-rules-v1.md",
+      "sha256": "640b8932c6b407be70277480869758517bf79d6438dee2fc9194b297d411da47"
+    },
+    {
+      "path": "docs/five-agent-demo-scenarios.md",
+      "sha256": "f89b8d1b8f58c85eb7ba0b410bc9ab66f439c59b5381587b6515ad5180052d47"
+    },
+    {
+      "path": "docs/five-agent-implementation-acceptance.md",
+      "sha256": "f0d164d08742d459429bf93bb030bc855c910545a77851e28af104b629fbb301"
+    },
+    {
+      "path": "docs/five-agent-refactor-v1.md",
+      "sha256": "49fbd98e8da905bf376ceea5b29211c35ff1be7487a67778945574cb8ea27257"
+    },
+    {
+      "path": "docs/goal-dialogue-implementation.md",
+      "sha256": "8bce97ea4dbd3ab614cf6b10739e8faac61d87e36ffff7571a824604b1c46675"
+    },
+    {
+      "path": "docs/goal-dialogue-progressive-context-supplement.md",
+      "sha256": "4b429e6bcf9ce50759e9d514a216d52aa7392b9b41d2dd6632f606bac9b1381b"
+    },
+    {
+      "path": "docs/mvp-implementation-plan.md",
+      "sha256": "e9df2ccddc8af7bdfcafc2e86f2c4aecadebdd131489b00f4e7b1b38ea55e759"
+    },
+    {
+      "path": "docs/one-plus-four-demo.md",
+      "sha256": "8b45538f4d92d4d4d214ada6d0f7566ac4574ab8777e3b037f72744a3bf29d78"
+    },
+    {
+      "path": "docs/paper-trading-4-18-acceptance.md",
+      "sha256": "98ac1bff923911f17bf89c0789f5291145be59bb313239af4bc8b07e8c4fa3fb"
+    },
+    {
+      "path": "docs/paper-trading-implementation.md",
+      "sha256": "729ce1b9d1d7e3c84418eb4cf377eb59350b3c5de2d7cf57a97bbad5e82310dc"
+    },
+    {
+      "path": "docs/paper-trading-mvp-prd.md",
+      "sha256": "cb7e6834f5995342def2aceefb40ec59c5640a2f64b570559c3306f217bfab9e"
+    },
+    {
+      "path": "docs/paper-trading-phase2-todo.md",
+      "sha256": "5410c561b5f5fc03b4cbe6269081311d36cee41f2577504f31ec1c910884e1c5"
+    },
+    {
+      "path": "docs/paper-trading-strategy-lab.md",
+      "sha256": "615f70e49ccc1ed6b3d0754ca3147f157689d98ffe92ec668c1f67f2b049f84c"
+    },
+    {
+      "path": "docs/paper-trading-technical-design.md",
+      "sha256": "8dbc88477557b43a2ac0606449f75152cb75346b51d580c529a05d749784e19e"
+    },
+    {
+      "path": "docs/product-alignment-audit.md",
+      "sha256": "777853110f6bf2236950363d9c3e76b3e66d60dd627c6e8d0f387d937789a5fa"
+    },
+    {
+      "path": "docs/scenario-simulation-research.md",
+      "sha256": "670248a76bb06d6f95345ea8a56f9537501e320aa57c3a1291040bb9aa4d5ed8"
+    },
+    {
+      "path": "docs/ui-assets.md",
+      "sha256": "a9cecc02f7046e2a376e565ae67db9454b30b1b95398ed14e8bfd9c86b81289e"
+    },
+    {
+      "path": "docs/unified-database-acceptance-v03.md",
+      "sha256": "da75513ddb82877beaccb51e3f90245410166ae9b819af20b9d6d332dd299732"
+    },
+    {
+      "path": "docs/unified-database-v03.md",
+      "sha256": "049954d41f9cffc994efe36d31436c3b7de0fdfcacb2348780da03e5cdce7224"
+    },
+    {
+      "path": "postcss.config.mjs",
+      "sha256": "dfac7ac2d86d326a0e5adb024e7943c181393ed17a5fcb8f0315b24c7da6ddde"
+    },
+    {
+      "path": "prisma/migrations/20260914014000_init/migration.sql",
+      "sha256": "6d549e5de638421c6901b922f2b0a2bbfa44162bcba3881f5cc6acd331ab0c38"
+    },
+    {
+      "path": "prisma/migrations/20260914040000_calculation_snapshots/migration.sql",
+      "sha256": "87e14948a1a2ca004a0d5253b5e66ebd20ab191f060635a49e7e527cb039ac09"
+    },
+    {
+      "path": "prisma/migrations/20260914090000_agents_and_plans/migration.sql",
+      "sha256": "fdab10187efbf50001571f7e882e9e6f7a0b1694cd9fbfa7853300067e72e53c"
+    },
+    {
+      "path": "prisma/migrations/20260914100000_scenarios_and_actions/migration.sql",
+      "sha256": "e8e7db82b93b08c7d049f22e37e6b6ec156df2bd5866c4e3b9bd4858c4b33ac5"
+    },
+    {
+      "path": "prisma/migrations/20260916090000_agent_os_foundation/migration.sql",
+      "sha256": "81d465f03c0cf6ac226a7cc86cf79763dca5356226f9fe81d76b6a7324260181"
+    },
+    {
+      "path": "prisma/migrations/20260916110000_agent_goal_binding/migration.sql",
+      "sha256": "5465803f8150110c40cccf14579ab8656169590c74f9bf086b5e9595fbe13413"
+    },
+    {
+      "path": "prisma/migrations/20260916120000_diagnosis_actions/migration.sql",
+      "sha256": "ff53105f392398bdf6bd3280b9be3cf225185f738772afed826d95e9fa61b401"
+    },
+    {
+      "path": "prisma/migrations/20260916130000_action_feedback/migration.sql",
+      "sha256": "b7a838f94ed9db4154872932e4c7ff093d56d930b99138cad6e0ed36b30b4d2e"
+    },
+    {
+      "path": "prisma/migrations/20260916140000_ledger_headers/migration.sql",
+      "sha256": "f45fcff803b613eb0be0cf3f7ba5b840d997007323f54e4ff5adebb714648b92"
+    },
+    {
+      "path": "prisma/migrations/20260916150000_agent_constraints/migration.sql",
+      "sha256": "1d54d436aa293ba9a09c0bd30b659e0c8a35127d20f3c7cd6eb45aba5b3f214d"
+    },
+    {
+      "path": "prisma/migrations/20260917010000_goal_discovery/migration.sql",
+      "sha256": "1f0f47eb641eca16b1f7a8b9961034cda6283ad54fd1682e119107647d508d72"
+    },
+    {
+      "path": "prisma/migrations/20260918090000_financial_recording/migration.sql",
+      "sha256": "bd2a49f5c768a44a51017329475ece7111fffec5f732061ce5a0e51cebd9aac0"
+    },
+    {
+      "path": "prisma/migrations/20260921090000_future_planning_reports/migration.sql",
+      "sha256": "b062ad2fdff44849612d4e7c343bb806142b9c18723d1938743b52e3ffe65b94"
+    },
+    {
+      "path": "prisma/migrations/20260922090000_transactions_and_cashflow_analysis/migration.sql",
+      "sha256": "e399a05965cf21c9dbee0a96632926463aaef04effc9e7c1c472e904f719185f"
+    },
+    {
+      "path": "prisma/migrations/20260922180000_cashflow_advice_source_key/migration.sql",
+      "sha256": "e16e235c99b8cccf120197e5b7a77f51587ee220aa2132432886336eac5c4834"
+    },
+    {
+      "path": "prisma/migrations/20260922200000_goal_bound_plan_recommendation/migration.sql",
+      "sha256": "e56494b6ced7552fa2ac82f5e70d38252d405472cc0296fcb90baa9e4fd70f18"
+    },
+    {
+      "path": "prisma/migrations/20260922210000_structured_future_planning/migration.sql",
+      "sha256": "b2b54188b0455950519377e68873ab36113c450d3ff1c79259fb05a674aa0145"
+    },
+    {
+      "path": "prisma/migrations/20260922220000_future_planning_adoption/migration.sql",
+      "sha256": "ec6c26c653144a8307c212482a82fcdb26ad75cf48e5fd777111f2fb90f736b6"
+    },
+    {
+      "path": "prisma/migrations/20260929090000_prompt_overrides/migration.sql",
+      "sha256": "955df702ccc8f08c95aef56eef4cdab25085ef0f991c8889250d041eb6c86719"
+    },
+    {
+      "path": "prisma/migrations/20261003090000_car_decisions/migration.sql",
+      "sha256": "3f4352018027a9ef244de3e8ccacdd525d0522a68881e03ce8243c39b3ef9c86"
+    },
+    {
+      "path": "prisma/migrations/20261003160000_decision_memory/migration.sql",
+      "sha256": "27a117d76522d05d9a93ed807a7a9335fc734a29a592c170f1ea122d95d204a5"
+    },
+    {
+      "path": "prisma/migrations/20261004120000_specialist_managers/migration.sql",
+      "sha256": "cadf26878732bfa9ade987ced302c4ba9deea0b8d9509db11dd41f32bf8ed0d0"
+    },
+    {
+      "path": "prisma/migrations/20261004150000_unified_database/migration.sql",
+      "sha256": "c4c1a568a8dbf7ffbb4935fce18fa46ed6adfd2cea04c3080e4acb79e3eb4620"
+    },
+    {
+      "path": "prisma/migrations/20261004150100_budget_history_status/migration.sql",
+      "sha256": "77e517a28d873d3b2a04f61167b94ca57e6a81a205af7e281cf1d607ec323f97"
+    },
+    {
+      "path": "prisma/migrations/20261004150200_rule_guards/migration.sql",
+      "sha256": "9f2a8a866c701a08c272f97d1f36c22871907950bec1fc0f9d5bf0872e060af8"
+    },
+    {
+      "path": "prisma/migrations/20261004150300_null_and_runtime_guards/migration.sql",
+      "sha256": "8c9b6eef801fc354a972cfd7330f865aa0f12fff0c7d877b25ca9959e7d97421"
+    },
+    {
+      "path": "prisma/migrations/20261004150400_composite_relations/migration.sql",
+      "sha256": "108a806c980e06c076f74121f2186e5d6165c6b66ff8b18d9f11b2966f6da537"
+    },
+    {
+      "path": "prisma/migrations/20261004150500_verification_evidence/migration.sql",
+      "sha256": "b0ef1ab0521ef92e30dd3845dde21fb30cc13fc01d84c0085ce96587a5224e97"
+    },
+    {
+      "path": "prisma/migrations/20261004180000_five_agents/migration.sql",
+      "sha256": "dcd7fc8da664a9234fb54abf59750a69155f27a7a7ff0fac21cb1113b9615c95"
+    },
+    {
+      "path": "prisma/migrations/20261004180100_agent_legacy_bridge/migration.sql",
+      "sha256": "66e5349be6e35d64b20e6a9fe6771e03308879ce923e33ad6ecdcd4334315239"
+    },
+    {
+      "path": "prisma/migrations/20261007090000_paper_trading/migration.sql",
+      "sha256": "752eaa0eaa8155df8ebcdc76b35410d61f7ab6dc0cd1deb22a7c3fa809d545c1"
+    },
+    {
+      "path": "prisma/migrations/20261008020000_paper_experiments/migration.sql",
+      "sha256": "d0bae212f9e9919311dcc491a5517a3180a550aa831bccff76032c535a3ce2f0"
+    },
+    {
+      "path": "prisma/migrations/migration_lock.toml",
+      "sha256": "5bd63ee987f5ad53bfa5709a067052f2b8a897f5250c191b8b80271251e2571b"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "sha256": "d6eeb2b94a122251b168357e36185a847680343816f5f1b8210da3cee94032ce"
+    },
+    {
+      "path": "scripts/complete-business-migration.test.ts",
+      "sha256": "c58f02990b4f715ab35efe00c97e2b1719dd6d174fb91f42cc7a4d3659854479"
+    },
+    {
+      "path": "scripts/database-migrate.mjs",
+      "sha256": "104e255ecb5987b36b55a8ee283f929cf19ff72d712e9f30e03e0312c81efa4b"
+    },
+    {
+      "path": "scripts/paper-dev.mjs",
+      "sha256": "4b5b5c1598174ce0f6d8126d3ea8061d397779255fddea879766078f03ae7b3a"
+    },
+    {
+      "path": "scripts/paper-history-probe.mjs",
+      "sha256": "66f0457785f5b6a1592fefa16dfb355ef1d330bb043aec72eb329ce1e77dae0a"
+    },
+    {
+      "path": "scripts/paper-quote-probe.ts",
+      "sha256": "cb19e688e18d5f38c1386d00aadb28e3ac7dbb6bde2e25ef485a75e3768dbd3f"
+    },
+    {
+      "path": "scripts/paper-quote-report.mjs",
+      "sha256": "cea04697d1e81b0d79f3406ee60f019695f4ef8b0a00aecefdd1924c7d9cbc9d"
+    },
+    {
+      "path": "scripts/paper-quote-report.test.mjs",
+      "sha256": "8820012b9cbbb2f0f89fd1b16667659f96fcae7e2737879ee578f786312dd9de"
+    },
+    {
+      "path": "scripts/paper-runtime-alias.cjs",
+      "sha256": "6350ae8e754207e4f46e640549d57ac7d435e72f3d7600fe3864facf942d87d7"
+    },
+    {
+      "path": "scripts/paper-strategy-worker.ts",
+      "sha256": "82fef9df15593cd9658baa33379089c5bc769e229ffbe85c427c5a08a54aa9db"
+    },
+    {
+      "path": "scripts/paper-worker-smoke.mjs",
+      "sha256": "0c1ee35762bd0feaf7a30f5b88a2fe15c0f07958b993f553550abb75452d6e48"
+    },
+    {
+      "path": "scripts/paper-worker.ts",
+      "sha256": "7bde0b188aa4863bb2cdd65df85d28b2e13dd70d7ced6c8d66630a380bcce666"
+    },
+    {
+      "path": "src/app/api/actions/[id]/status/route.ts",
+      "sha256": "e630c263e8ce0b09077a77cb6760f77d3d556419a4aa424b914ca33a60000582"
+    },
+    {
+      "path": "src/app/api/agent-proposals/[id]/confirm/route.ts",
+      "sha256": "d0418a482136e4df5bb2e5ede141c09acb54a859ca9d3cdb56dbebb343a7a657"
+    },
+    {
+      "path": "src/app/api/agent-proposals/[id]/reject/route.ts",
+      "sha256": "86f2d5fa224c883f9e4dae402389da711f6727d6d453fe5e1ec39413bb2e2432"
+    },
+    {
+      "path": "src/app/api/agent-results/route.ts",
+      "sha256": "9b12091ff7b07370cb2f381c90151ee153f0191f735e319de77c6f4c7c42e6cd"
+    },
+    {
+      "path": "src/app/api/agent-runs/[id]/cancel/route.ts",
+      "sha256": "f6201561cf1167106b6cc7dfeb495e32f09c01140c65709240e2164601a85d43"
+    },
+    {
+      "path": "src/app/api/agent-runs/[id]/resume/route.ts",
+      "sha256": "7634f2524af73a33e6b940aa24d40e0c56b682b40f8c4aa1c99ad851953d773e"
+    },
+    {
+      "path": "src/app/api/agent-runs/[id]/route.ts",
+      "sha256": "c5a8edab134564f8ff1defbc54157f5e4b35e4d87ed136b0b682b65f5903e5ad"
+    },
+    {
+      "path": "src/app/api/agent-sessions/[id]/messages/route.ts",
+      "sha256": "54a48ec77e3f8ea60b0a9396895ff8602f9bf0cfe3a4c47dfa2954f4ed5a6160"
+    },
+    {
+      "path": "src/app/api/agent-sessions/[id]/route.ts",
+      "sha256": "d3202448dda33cafbbc0dd1218ca824bdca1f362f4e1b211b31a8bdb62f5fa27"
+    },
+    {
+      "path": "src/app/api/agent-sessions/route.ts",
+      "sha256": "7e8d2bac311fd64390ae41c17994b3fd18c28927940a6fd96c0a8d8d9bbefe6b"
+    },
+    {
+      "path": "src/app/api/agents/route.ts",
+      "sha256": "b4a53b20b552b156c4f4797dcf5b774a768545a51973875141f758cfc6a0ec21"
+    },
+    {
+      "path": "src/app/api/analysis/overview/route.ts",
+      "sha256": "88be4044f8d2cc32a65705d7af36cdefdff51583d607d45f2f9e60a867a7e68d"
+    },
+    {
+      "path": "src/app/api/assets/[id]/route.ts",
+      "sha256": "745adc1ae0eaee808b36d6477458adc4f33d3aeddf266fd42945acfc7314c6cf"
+    },
+    {
+      "path": "src/app/api/assets/route.ts",
+      "sha256": "98e090482d16190a2f5b00fd50781716568b3725a94f66957d41b405d356bfed"
+    },
+    {
+      "path": "src/app/api/business-drafts/route.ts",
+      "sha256": "d60e181fdb076ed0142e78e96f0775202cbe72d9a8e467fe59026ca8c124df05"
+    },
+    {
+      "path": "src/app/api/car-decisions/[id]/adopt/route.ts",
+      "sha256": "9cc0f3a81e8cdca829b55088680093b88dea1ba7372360a5f5820befc7f6edc7"
+    },
+    {
+      "path": "src/app/api/car-decisions/[id]/evaluate/route.ts",
+      "sha256": "20eb341a3c48ba5ddec9b16a7659f660e1c8d145922951b3a4c4d7e06845674c"
+    },
+    {
+      "path": "src/app/api/car-decisions/[id]/guidance/route.ts",
+      "sha256": "e9f4b82da86049ebb8540d62c8409ecac2c84d2f41de0e0af6140ca3c8367bd6"
+    },
+    {
+      "path": "src/app/api/car-decisions/[id]/purchase-preview/route.ts",
+      "sha256": "1328fd60ebc82f5d23b6462ea15b780bacc36b257e68e88a19425276c1662dea"
+    },
+    {
+      "path": "src/app/api/car-decisions/[id]/purchase/route.ts",
+      "sha256": "f26515fbd736e6897f8772a57c97be587db02dc9473e9d139a30dab16344a64c"
+    },
+    {
+      "path": "src/app/api/car-decisions/[id]/reviews/route.ts",
+      "sha256": "74a66764e1dd03c891e7c364b6aa88242b9781b1e031416c0501502c540519c4"
+    },
+    {
+      "path": "src/app/api/car-decisions/resume/route.ts",
+      "sha256": "da0f885e6b754f443f5d7055a126ba21eb2ac0086defb8bee7ba6f1bfd6a789a"
+    },
+    {
+      "path": "src/app/api/car-decisions/route.ts",
+      "sha256": "c4256dc5b1ab0388821a09e1a91245ebf0083091e5a1aa34314c521b7fb33670"
+    },
+    {
+      "path": "src/app/api/cashflow-analyses/[id]/recommendations/[index]/accept/route.ts",
+      "sha256": "d48f92123d9638521292f76d259ada0ba27739c1e2c9d61b81b192a8f484b749"
+    },
+    {
+      "path": "src/app/api/cashflow-analyses/route.ts",
+      "sha256": "b1a8387d58f7e5a4295012f804b8f5839114e9017e7b6388392c043b5268d7b8"
+    },
+    {
+      "path": "src/app/api/data-management/route.ts",
+      "sha256": "6119e59f69eda4b738759ed24617c59a275b9fbc968cef5eae12a80b671a6020"
+    },
+    {
+      "path": "src/app/api/execution-results/route.ts",
+      "sha256": "c64d673066ede0cdf9334ae44dcf9172497b542dafbe2d9026a16d65766bc82d"
+    },
+    {
+      "path": "src/app/api/financial-import/commit/route.ts",
+      "sha256": "926e72b4f2d628354370fff992cd9d424a33fe90a630573152db2e5207e6d28f"
+    },
+    {
+      "path": "src/app/api/financial-import/route.ts",
+      "sha256": "2d67c63ba6587c646f99e7dec446e85ffc3a9057b1f0aab9f0c9e8de5d1ccfb4"
+    },
+    {
+      "path": "src/app/api/future-planning-reports/[id]/adopt/route.ts",
+      "sha256": "71b551dfe1c269516b199cb9a211ea2ed13e6125a4df586f9441783814b444af"
+    },
+    {
+      "path": "src/app/api/goal-decisions/route.ts",
+      "sha256": "5f0232f02f89736155df8d4ab1f20e1c6699aaba911c537a17bdeca22b3f8b1a"
+    },
+    {
+      "path": "src/app/api/goal-discovery/[id]/cancel/route.ts",
+      "sha256": "eb381857edb50db04226d9cf09c6702bbb4f7a6310cea2359e418a8913027bee"
+    },
+    {
+      "path": "src/app/api/goal-discovery/[id]/messages/route.ts",
+      "sha256": "9d90be8b10ee2a0004eae15e1d89737ff145efc16d60008a6c5aba934dce8fdc"
+    },
+    {
+      "path": "src/app/api/goal-discovery/consent/route.ts",
+      "sha256": "0722bb0196a13c07310c3f92f9ab9b0165cb41c9a62e7636a2a6d1e67acda9af"
+    },
+    {
+      "path": "src/app/api/goal-discovery/route.ts",
+      "sha256": "7e5827321ea22a32a222a56862d2826b532feeec0d5d0b1939152dc9363d3633"
+    },
+    {
+      "path": "src/app/api/goals/[id]/route.ts",
+      "sha256": "b588df84ed2ff3eddab422d43e07f37837a8502e49c50dd8c0c5e119b7c1776c"
+    },
+    {
+      "path": "src/app/api/goals/route.ts",
+      "sha256": "d048af9eea2a30e3dd5dc58e65468429e24286c0baeffd5182221b562b7117f1"
+    },
+    {
+      "path": "src/app/api/ledger/route.ts",
+      "sha256": "8d78df3605163bc8312856720b767061ad3c8606c92f3bac9fb04da61069e330"
+    },
+    {
+      "path": "src/app/api/liabilities/[id]/route.ts",
+      "sha256": "c14156a93a930c9a3b749eb6b12599bc0978b0c8f64d726cb643ff9634847619"
+    },
+    {
+      "path": "src/app/api/liabilities/route.ts",
+      "sha256": "c0512b71181a66f90eddfd04b438a9b30a3c737284e529735a0113c2cfdc364b"
+    },
+    {
+      "path": "src/app/api/managers/explain/route.ts",
+      "sha256": "31b95ff7e3e4cdfb6cddf6c6971ca8c8744591e67ce4bbe0f1c83be77e64ba95"
+    },
+    {
+      "path": "src/app/api/managers/route.ts",
+      "sha256": "f2fd570724a575e6f2b916d2254bf3c00625bd93cdff563aa1dc65dcc47533fa"
+    },
+    {
+      "path": "src/app/api/paper-trading/[[...path]]/route.ts",
+      "sha256": "5137668a14afcfa9d899fb4657b0d6c39754295a68c5d5ac7a95ef6c71fdf988"
+    },
+    {
+      "path": "src/app/api/planning-memories/[id]/route.ts",
+      "sha256": "b9cc64d2b277a4bae1343e53137d999ed55a73167775efea42f69a7da309dc18"
+    },
+    {
+      "path": "src/app/api/planning-memories/route.ts",
+      "sha256": "e1e31e3f5a8cead1b270230e38150352cf072736977992d3184c91458754f7bd"
+    },
+    {
+      "path": "src/app/api/plans/[id]/selection/route.ts",
+      "sha256": "ee2e7117ed99e9aed6e8210ef903892e15c5381db706deff2d07be6e276d2413"
+    },
+    {
+      "path": "src/app/api/portfolio/route.ts",
+      "sha256": "a9f75564347450727ba9cb9a9f68910b471f1c8afb1eb39c190cd8b1d2240aaf"
+    },
+    {
+      "path": "src/app/api/product-management/route.ts",
+      "sha256": "824c4cf32071a0890c9df02df504d0252e7fc62a1441b71018902c4bfa06872c"
+    },
+    {
+      "path": "src/app/api/profile/route.ts",
+      "sha256": "8b51ce764259482387e28136a918ac8cd35b160d3c1c856cb3916aadbfbbd9dd"
+    },
+    {
+      "path": "src/app/api/prompt-settings/route.ts",
+      "sha256": "e5a5b6ab32ddf5959094ead58827c38c7f48f1150ce997ba92447e20bf818d19"
+    },
+    {
+      "path": "src/app/api/tasks/[id]/route.ts",
+      "sha256": "e7b30e212562ce901a0c852d3103ae46a139569af5e76a8d5072217535597b40"
+    },
+    {
+      "path": "src/app/api/tasks/route.ts",
+      "sha256": "239af3f11580d0caf6889c22e7f9755c6fc55c78ce840604f6e711a4625e988a"
+    },
+    {
+      "path": "src/app/api/transactions/[id]/route.ts",
+      "sha256": "97883ce0ff87175cc719d59e325d3c3f8db534525d34403c1b2e7e89a87d8b5e"
+    },
+    {
+      "path": "src/app/api/transactions/import/commit/route.ts",
+      "sha256": "2c2cfaa6c9026403c250aab78ce63223732859b1a0443553f2fea1c27e992865"
+    },
+    {
+      "path": "src/app/api/transactions/import/route.ts",
+      "sha256": "033d5ef5620b41b21b745e9c12efa4b62acfd7f2907505eca4ceb50fbd763b2a"
+    },
+    {
+      "path": "src/app/api/transactions/route.test.ts",
+      "sha256": "d7ccfe4852c574d9e533beacf58bf224f733db82aab73248f61b66f90fed972c"
+    },
+    {
+      "path": "src/app/api/transactions/route.ts",
+      "sha256": "c1e9765413c4609a368e132aed48a8c4b631dc8d6e2d54c7530a6b37b885964f"
+    },
+    {
+      "path": "src/app/api/workspaces/route.test.ts",
+      "sha256": "e0955e962e7fa3f2f3384f2bc5631e1a046ab8d92eaf01b7196511a2aa118f66"
+    },
+    {
+      "path": "src/app/api/workspaces/route.ts",
+      "sha256": "8886538a769ab18b40881d0f147c67ecf18fb2be7c944ce903e913b605a545b8"
+    },
+    {
+      "path": "src/app/fonts/InstrumentSerif-Regular.ttf",
+      "sha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88"
+    },
+    {
+      "path": "src/app/fonts/OFL-InstrumentSerif.txt",
+      "sha256": "129ed7618959716959f2941fdd5b49e0ad6e6c1d78726761786a00253d865521"
+    },
+    {
+      "path": "src/app/globals.css",
+      "sha256": "41343729c8de97d9bef26ab38a748698ee3a44e71d174119ab462703ca718d57"
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "sha256": "bbe60ccddf9f20044b0abfae4c23e7bd38baf5cdb1bf81b6d525b570d503746c"
+    },
+    {
+      "path": "src/app/page.tsx",
+      "sha256": "be39e6bf6a778c117a9980ec7782bbc0b3eb2878c43bfe3b79134a70eba433a9"
+    },
+    {
+      "path": "src/components/agent-conversation.css",
+      "sha256": "89251ff06cc674fab1bd1e011da220aea95524ecdfa1e497eec09fd58132e3db"
+    },
+    {
+      "path": "src/components/agent-conversation.tsx",
+      "sha256": "58b25d8b8123d86fa812175fed3d55a32ea1cf3666e9037e29aa35975d146fcc"
+    },
+    {
+      "path": "src/components/agent-views.tsx",
+      "sha256": "f1a317395677f2b4a2916205a06c631654e4608f6572e4dae9ea0c5ec8dbd480"
+    },
+    {
+      "path": "src/components/assessment-account-card.tsx",
+      "sha256": "c0484cbce9ccd971d4834f4aff9de743944802382ad36b2f8a87023aa0737b94"
+    },
+    {
+      "path": "src/components/bookkeeping-view.test.tsx",
+      "sha256": "5965cc23a7f1810b58107c977f82f8304b4f6ef2d050df400fa0cb52efe80697"
+    },
+    {
+      "path": "src/components/bookkeeping-view.tsx",
+      "sha256": "da255284c5a4d10852822cd122c4fd52497c8ebc0ac5f43136e7471066491c0c"
+    },
+    {
+      "path": "src/components/business-draft.ts",
+      "sha256": "af3b32ad4c50a8108cbd260d835bdf765c522671b15dcc8d63e1fc10d8f4afbe"
+    },
+    {
+      "path": "src/components/car-decision-confirmation.test.tsx",
+      "sha256": "a519cfd4de44d54dc66e7c971758f011e3b023fb08ff7d3732b366aff98bbd1b"
+    },
+    {
+      "path": "src/components/car-planning-view.tsx",
+      "sha256": "d64caf58157ed0f0ab6e3c46b1eeb4a971f6c14195a075cc1c98bcf62c766463"
+    },
+    {
+      "path": "src/components/car-planning.css",
+      "sha256": "3952c62a64d5d8c59bed8b54e7e45a4e41a6370d89f1794da2156d80a6518aa6"
+    },
+    {
+      "path": "src/components/cashflow-analysis-view.test.tsx",
+      "sha256": "39cc0cfd107db2c99dcbb48888cd5995acf8f5c72093ace7afa1abe37e0f673a"
+    },
+    {
+      "path": "src/components/cashflow-analysis-view.tsx",
+      "sha256": "1950e960a2eb8aa01e017d58f85809745a96d5f46d8868afef680a35a1d5c19a"
+    },
+    {
+      "path": "src/components/data-management-view.tsx",
+      "sha256": "d5551ab481b151cb204a9a9c627e9312e708e3531fbe0ef6cfad85b361e5d2fd"
+    },
+    {
+      "path": "src/components/execution-views.tsx",
+      "sha256": "d850a27638ae67cd39d5af84a49471ddf1b037fa10f058a9d605cc7b568aebfe"
+    },
+    {
+      "path": "src/components/financial-home.test.tsx",
+      "sha256": "168619ac886dae10a885bf8826a77dd15db02367047c401d1f59436b3883c6b8"
+    },
+    {
+      "path": "src/components/financial-home.tsx",
+      "sha256": "60140f50d6ae842163228f1f20b0947432e36f6e318c5732bb37b2c9051a233d"
+    },
+    {
+      "path": "src/components/financial-life-view.css",
+      "sha256": "9bed3edc7a8a19620968fe430780acf2489db7a93cd383acc3240abb9e529fe6"
+    },
+    {
+      "path": "src/components/financial-life-view.tsx",
+      "sha256": "51514ec2c731622d22620a47bf6e2101fcd9e68b9594533035a7c4b9b4276127"
+    },
+    {
+      "path": "src/components/financial-workspace.tsx",
+      "sha256": "f64ac1b40577354021b39a700407b5bcfc1e4ef0fbb2c4873e41de4325fd7e9c"
+    },
+    {
+      "path": "src/components/goal-decision-summary.tsx",
+      "sha256": "98d1538e8f74361acd846c651cb22b7bcf938e422de959bc7f08cb94bbeb9315"
+    },
+    {
+      "path": "src/components/goal-home.test.tsx",
+      "sha256": "f9fc9f3e94833a390980df9ca627a7f9d91960482c8b75143386c37a835c1e72"
+    },
+    {
+      "path": "src/components/goal-home.tsx",
+      "sha256": "81c533dd48c08063408ba207dc9af02c4d4ff8936bfa44ec39eef21720401cfd"
+    },
+    {
+      "path": "src/components/paper-trading-panels.tsx",
+      "sha256": "6a6b3e96907f19b5d28e772e208167ac906427e2ade9fe10b0d4c3e88da78134"
+    },
+    {
+      "path": "src/components/paper-trading.css",
+      "sha256": "52d612824c0e67492a6ca95465df27a17ca1ae8ccef6929806efdfa7fdba976c"
+    },
+    {
+      "path": "src/components/paper-trading.tsx",
+      "sha256": "6e84905fcfa54e9d199027d0989ed4be64f5d292fecb0cc169824ffb166f08b1"
+    },
+    {
+      "path": "src/components/planning-hub.test.tsx",
+      "sha256": "a2e09e4b124008165d84f6c45a518a461b4d033f3814dc0116e5e2d5b8d06c8a"
+    },
+    {
+      "path": "src/components/planning-hub.tsx",
+      "sha256": "c37b588247170a211b678c5305654888559946b329c0bd607455416bf130e52a"
+    },
+    {
+      "path": "src/components/planning-preferences.tsx",
+      "sha256": "d2d81f0b4af180b9e3b25ba9527f79d683beaa13d960238bedde16a4cd469058"
+    },
+    {
+      "path": "src/components/profile-dialog.test.tsx",
+      "sha256": "88261d57b628559f0c9acb030d1cb7db22fcb0ae4aa361b41e15b228d08a3e79"
+    },
+    {
+      "path": "src/components/profile-dialog.tsx",
+      "sha256": "0eb14361e241c5c27ddae9f8b19cdf64c1480448b678020b689d03bbe69488ea"
+    },
+    {
+      "path": "src/components/prompt-sidebar.tsx",
+      "sha256": "5ed0d7ff641f09262082fe00312ccf09c8c82b5df26ca72670dedb94a2f5609b"
+    },
+    {
+      "path": "src/components/report-and-actions.test.tsx",
+      "sha256": "21b4abf5582a517ef027c7d3a498756d94767ac33f08f38b7398682096c7dbcf"
+    },
+    {
+      "path": "src/components/specialist-managers.css",
+      "sha256": "2626509eb4e961b158008aa49965e0f6a52fb44b6d104b590236503da25ac24d"
+    },
+    {
+      "path": "src/components/specialist-managers.test.tsx",
+      "sha256": "dc4a93ae5857847f09e00ee0c1b011784864a0d3803c529f4f35307bfb1f9b5a"
+    },
+    {
+      "path": "src/components/specialist-managers.tsx",
+      "sha256": "959aa5641853bb779f2d50c051de6668769e3c6c8bd83b9a49d263bd427e9782"
+    },
+    {
+      "path": "src/components/transaction-import-dialog.tsx",
+      "sha256": "79b33671fc3f7f81cb006b8403603e986d70604c4cf49555702fa19363099ef7"
+    },
+    {
+      "path": "src/domain/agents.ts",
+      "sha256": "9ada9434e9517385e83392d148165aff48aa5b107fe99f8f23748d731caafeae"
+    },
+    {
+      "path": "src/domain/calculator.test.ts",
+      "sha256": "a91723ba34e90c54bf35b4248ad0ef46978442dde5d13feab62fde4e08900639"
+    },
+    {
+      "path": "src/domain/calculator.ts",
+      "sha256": "5467797c7ab319b3c12d546426568c81af35ac24d1fe2e5aded3feb7dbdf1713"
+    },
+    {
+      "path": "src/domain/car-assumptions.test.ts",
+      "sha256": "2e09c2e56b908cfe4f26e9adcc1c5ececa9420c819015c3d744a3f9a20a0d2a9"
+    },
+    {
+      "path": "src/domain/car-assumptions.ts",
+      "sha256": "531e7772c9f6d1d4203cdd9d892a00a8e157f3ade83334a0568e3d0f00af90fd"
+    },
+    {
+      "path": "src/domain/car-planning.test.ts",
+      "sha256": "1acd2c27fd54303e6e536791f87af2c7fd5ab73d067dac818ba1d3f3d629b643"
+    },
+    {
+      "path": "src/domain/car-planning.ts",
+      "sha256": "fa03848bd68bcc9c4b1638f7f7a9b21baae13eec1eea89f93e04bea6c89b6010"
+    },
+    {
+      "path": "src/domain/car-workflow.test.ts",
+      "sha256": "f9b0abe40bcc96cfb155e0e745d24c011e29e880e0daf00a04857b268c4e953e"
+    },
+    {
+      "path": "src/domain/car-workflow.ts",
+      "sha256": "21a86b71b2379ba858c673282a86918bd004273a360cb29879cb962dbb7fa745"
+    },
+    {
+      "path": "src/domain/cashflow-analysis.test.ts",
+      "sha256": "f9e7a392c3a73a368d69e7b91f1ab9f6add709aabcd1e9f2ba4bc998c04f2155"
+    },
+    {
+      "path": "src/domain/cashflow-analysis.ts",
+      "sha256": "23b005a349108d80e8a59a61a73d3edf511ce825ca0b1c1e19f8cf2470b0f299"
+    },
+    {
+      "path": "src/domain/database-planning.test.ts",
+      "sha256": "a95175e7931daa23a9a6d709e35c1788e0b77ecf1e4e003323f4c7cb472f8df7"
+    },
+    {
+      "path": "src/domain/database-planning.ts",
+      "sha256": "de0d73bc6d9dca1f111b1451e6f495a590d798eef372f8b86a14308edd63f89b"
+    },
+    {
+      "path": "src/domain/execution.test.ts",
+      "sha256": "56493e1a2e4ecc2039230bfff9f7de4586fafddeb0c43875642530517735fd15"
+    },
+    {
+      "path": "src/domain/execution.ts",
+      "sha256": "7334165a616b4deb9ce50781e36d7e3dcd76c0fa7a32296a38a67f3a4df8a331"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-currentness.test.ts",
+      "sha256": "7dcd1eca5c51fc4ea0c1a76c6fc32f53040195f95e7fae1a4082dbf922451c09"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-currentness.ts",
+      "sha256": "8d5d1c42a056fca9e16757f5a4d14c3059a72e99f1309ffb5fb4f46dd895818c"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-engine.test.ts",
+      "sha256": "a2cd9d81fd118fa0f3372ba050d3f27425df65ea8383248ffe2c3b4438aaa733"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-engine.ts",
+      "sha256": "f4017de8ad8f5051afd10a7f12e74c2cc50a6e462ad79226975e8a6ac2846df3"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-events.test.ts",
+      "sha256": "68b7ba4ffa44bc6369377da9df287ac92de8cdc5c875eb36f638c0fe006a5aa8"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-events.ts",
+      "sha256": "bcc81f70f4ab791212ad6fafa3ffce501f642bf85d9a02ca4d3651bc9f7c1b26"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-opening.test.ts",
+      "sha256": "08ee95b4ac6a33de9bc6fad648a71fad3443a8149c5e0fc4d86aa5c9b86ed939"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-opening.ts",
+      "sha256": "70e5cca340d8c7a34dde65dc350e1f334a780705caa4eb90ef794b18b311d899"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-storage.test.ts",
+      "sha256": "873c5ad45ec4fb87483bb9d8b66f5cb2943194567fe4d760376276ad69e9dc0b"
+    },
+    {
+      "path": "src/domain/financial-life-simulation-storage.ts",
+      "sha256": "9618ea13ac6266ca58fbf8ce4d80c7b0eb004b9a76b5e72fa5b0106d1e580251"
+    },
+    {
+      "path": "src/domain/financial-life-simulation.types.ts",
+      "sha256": "4515c14392c7c61c59830f78880806e82208248136f4457f86f4af5eec20a306"
+    },
+    {
+      "path": "src/domain/format-planning-text.test.ts",
+      "sha256": "4db0aae20da98899f58fa49f4f076c402c78f62ae85e1458ca85a1fa0671d587"
+    },
+    {
+      "path": "src/domain/format-planning-text.ts",
+      "sha256": "d3b17f616998af63891e2f87a2f71fc61a5379ea9d3aa8673091a786c0d44925"
+    },
+    {
+      "path": "src/domain/four-account-assessment.test.ts",
+      "sha256": "dd2a6a90e83e520f63a1b28c2fc8c3a5a705391ebbd00f381dac7376f3e3696b"
+    },
+    {
+      "path": "src/domain/four-account-assessment.ts",
+      "sha256": "ce2da4be1d3850fff3e6b742c3ff83f31b66b91656637b3eb3af99860a4b5017"
+    },
+    {
+      "path": "src/domain/future-planning-calculator.test.ts",
+      "sha256": "e46dc30a471cadb010917c915956e91f19f708599ee9949bde196a7fe758ec1e"
+    },
+    {
+      "path": "src/domain/future-planning-calculator.ts",
+      "sha256": "6f8c618e0b8d52a9b7308739dc9b9911a77a74227ebdea297d17b12baeb596df"
+    },
+    {
+      "path": "src/domain/future-planning-formulas.ts",
+      "sha256": "4bd0087a7df993519fbd4391044bbfe45d65998fb8b352a678ac3f3db6be467e"
+    },
+    {
+      "path": "src/domain/ledger-headers.test.ts",
+      "sha256": "64b96872f280df14e1b60d044da454f853e9d525512dcc848caf37f4cb011ead"
+    },
+    {
+      "path": "src/domain/ledger-headers.ts",
+      "sha256": "58e9acc8d162d26b4f610604f38f2115e87b4d713a06abe336483cf6471f0927"
+    },
+    {
+      "path": "src/domain/life-financial-simulation.test.ts",
+      "sha256": "1e16a9df1c50466f93028d55e13985656bd52b2116bb02f6eef133429032ea48"
+    },
+    {
+      "path": "src/domain/life-financial-simulation.ts",
+      "sha256": "1e4f58256d2dd19f6339f4a9bded7d78bd39312376ce03d3eaa34f6c8c73ba3f"
+    },
+    {
+      "path": "src/domain/money-input.test.ts",
+      "sha256": "f73fdf0741ca88b200797b9b0331aa376940de0b8298b8d260cb844e3e5e41af"
+    },
+    {
+      "path": "src/domain/money-input.ts",
+      "sha256": "241d1588c880f70170e843a47cccd24233eb6d0a392adf5da751239eb3d528b8"
+    },
+    {
+      "path": "src/domain/paper-replay.ts",
+      "sha256": "e3177ec4c3299da4d0b61721a4e681105e90051a2e5bff7873b6f92042fa3a5e"
+    },
+    {
+      "path": "src/domain/paper-strategy.ts",
+      "sha256": "39194f97477bb330d921239984b6be106b09883978028acc14d9b1cd61896158"
+    },
+    {
+      "path": "src/domain/paper-trading.test.ts",
+      "sha256": "a42af4ad4b4b82207d837c8a53589258599bacd6f348377108cc58e6749c5d92"
+    },
+    {
+      "path": "src/domain/paper-trading.ts",
+      "sha256": "8aa0daa5333441696b31fc220a1183154dcf1bbe94aa8fc93cd448fc869ebdb6"
+    },
+    {
+      "path": "src/domain/planning.test.ts",
+      "sha256": "9c1cef6d5a01919192c4405b71715e1ee3ca2ed4123539812dcb57c07adde040"
+    },
+    {
+      "path": "src/domain/planning.ts",
+      "sha256": "99400add100178bf1b8cd38d83c54a149241dc36ee8cf885808715b1449c3df7"
+    },
+    {
+      "path": "src/domain/portfolio.test.ts",
+      "sha256": "e6957e0dc464bb09d02569724a1337b78e80771240723e7139caa04a9f649304"
+    },
+    {
+      "path": "src/domain/portfolio.ts",
+      "sha256": "8337c94eee77603107f39cd2730ee023331ba038048788bf0fd16cbd847cb296"
+    },
+    {
+      "path": "src/domain/product-catalog.ts",
+      "sha256": "1a578dfe40deef3749a22a40881c1d00edb612a3b95fb1a9ec4ea1744baee83a"
+    },
+    {
+      "path": "src/domain/specialist-managers.test.ts",
+      "sha256": "375173438ace81b173929d6fda27ad2532d9834bcb87414717dbc7c84910630d"
+    },
+    {
+      "path": "src/domain/specialist-managers.ts",
+      "sha256": "c9887c08af09fb2c2da437fd2e021e137aebafb9203916b9ebed4dad253fe598"
+    },
+    {
+      "path": "src/domain/transactions.ts",
+      "sha256": "13e45272255668fd93126d05f446f77b587c5ecdbccfc0ce6ae1966d77b3ebb4"
+    },
+    {
+      "path": "src/domain/wealth.ts",
+      "sha256": "56c2f3785d312ee1b1ea6bd8c5588d4a2259aa173a57997395a287ea29feff89"
+    },
+    {
+      "path": "src/lib/database-maintenance.test.ts",
+      "sha256": "575fc1693433e3af30a805c4cc52662fedc361dd998623f5fa5792120ee80c1c"
+    },
+    {
+      "path": "src/lib/database-maintenance.ts",
+      "sha256": "d24848a4066db6f95b4f00a45f5e0fb0cabce5cf2ddf753f5a42532c2182fed3"
+    },
+    {
+      "path": "src/lib/db.ts",
+      "sha256": "79638cd6b76da188053e64b2a8dc605647c8dca80ae2ddcdac99de6a7ce3d110"
+    },
+    {
+      "path": "src/lib/paper-lock.ts",
+      "sha256": "08d5a6f51d8644ba7f9772d0d395a9d4fb88c896bb27072abe83e5aeec0b0829"
+    },
+    {
+      "path": "src/server/agent-context.ts",
+      "sha256": "e0f477a688fb8b0dd25c605d76568c83176f38f78ce8908e1b60a5d72358cc9a"
+    },
+    {
+      "path": "src/server/agent-proposals.ts",
+      "sha256": "dd7e58ad85658096a51b28b5c917f1afe44eb7a3fb5db831335eaec5e0460cae"
+    },
+    {
+      "path": "src/server/agent-runtime.test.ts",
+      "sha256": "332c103c2e14f2f26386539e68952cd5438f4b0b9f884d073d873c98c5421e8a"
+    },
+    {
+      "path": "src/server/agent-runtime.ts",
+      "sha256": "368b976614f465d0cac1fec4aaca8784313dd19f1f7d74557c77eec6e298667c"
+    },
+    {
+      "path": "src/server/agent-stream.ts",
+      "sha256": "de6d1910b778a19fc3e1eee07866a6c61821aee4ee16b096607ae76a92c8774f"
+    },
+    {
+      "path": "src/server/agent-tools.ts",
+      "sha256": "1066539d6ddc9f6509008129361fe665a4b077505af523c9eee016a78d9dced0"
+    },
+    {
+      "path": "src/server/asset-classification.ts",
+      "sha256": "a76c3d2dd69ef7aa59400040e023204ac461243457a3d217688c307e8b7f025a"
+    },
+    {
+      "path": "src/server/calculation.ts",
+      "sha256": "dd91059b95538d8b06c7e774b5f1b6e6c0f570b7d34e08ad5dd60d361912c1dc"
+    },
+    {
+      "path": "src/server/car-decision-state.ts",
+      "sha256": "063405012a0326dd7b61bf949e17d8e4cc5c3044f702a3687234021100cf389c"
+    },
+    {
+      "path": "src/server/car-planning.test.ts",
+      "sha256": "ae6df83b97ae8c2c1eedc9e02fd55cbaa976aff4fd606f1cc795d9140e12e034"
+    },
+    {
+      "path": "src/server/car-planning.ts",
+      "sha256": "7d288a1ce72260fae499bf19f3ce6637bf2db1cf365eea187c779e7918cce9d7"
+    },
+    {
+      "path": "src/server/cashflow-analysis.test.ts",
+      "sha256": "6243ba1f0a92bbee56b0ab192a0b3aa45f1afb7cc42497f99598a6ae79bfdbba"
+    },
+    {
+      "path": "src/server/cashflow-analysis.ts",
+      "sha256": "4656a9ae23052a9ce8039bbbf2849c7608615077156f48bf5996ec74c9b76d43"
+    },
+    {
+      "path": "src/server/data-management.ts",
+      "sha256": "22743669cd529035e2936dabade32298eba4927ad502b5677b290714942ee273"
+    },
+    {
+      "path": "src/server/database-backup.ts",
+      "sha256": "200427f6f015f03d0442fa1779774deef178a9fa635bd09b168aacb72de3bdde"
+    },
+    {
+      "path": "src/server/decision-database.ts",
+      "sha256": "e6a910b1b8450a3819fc5781722dafc9f6bb94e30a588b23de21b25a81bd1757"
+    },
+    {
+      "path": "src/server/diagnosis-prompt.ts",
+      "sha256": "cde77eece60e43c70daa6c79a0b753ed670341fd1914d8a015cb09ba858e1463"
+    },
+    {
+      "path": "src/server/execution-results.test.ts",
+      "sha256": "9b3ddd8546959fcc0c2ec0a9a6430e8169eadfa89c2865640e7622f9d003305c"
+    },
+    {
+      "path": "src/server/execution-results.ts",
+      "sha256": "c86a9d2d47e9136d11de84eeb49f666d7c7463db72acfc55aaa1d66d2a100c1a"
+    },
+    {
+      "path": "src/server/financial-import.test.ts",
+      "sha256": "76cc905148292b97d692bf5563c60be47abb4d73bd00296f8f75c165996a7dc2"
+    },
+    {
+      "path": "src/server/financial-import.ts",
+      "sha256": "10906d766b930350508239c3e4282887b111b8d81a356fcda88ada892ba582ef"
+    },
+    {
+      "path": "src/server/five-agent-runtime.test.ts",
+      "sha256": "b00b83c7387a96892376addc533947116f4168f32efebc401edbb788156bb765"
+    },
+    {
+      "path": "src/server/five-agent-runtime.ts",
+      "sha256": "31e4c74d8011dbab8ee8ef1a5329c6436cf303fe6530ef63491a3364f0d34e95"
+    },
+    {
+      "path": "src/server/four-account-assessment.ts",
+      "sha256": "23a16f5c7be56b99c210203acacdda877bc6bd9cc0c914bdce8ca4b620ef1fbe"
+    },
+    {
+      "path": "src/server/future-planning-prompt.ts",
+      "sha256": "d3449f04f0c5b62228400e1a1a0f9d3f36ad0884ff35998282a2c34f3a6c019a"
+    },
+    {
+      "path": "src/server/future-planning.test.ts",
+      "sha256": "c82204834bb1ba3a042a258cbab7267e1af91736bec896249dd3caa5acddabba"
+    },
+    {
+      "path": "src/server/future-planning.ts",
+      "sha256": "c439c6ba8f4cc8e579733fc94c568eb87b150725c37008509e40677f69923a5b"
+    },
+    {
+      "path": "src/server/goal-capabilities.ts",
+      "sha256": "a2446e848cfd08b796de7b6bcc712241f222f09dcb1a4ee57d1be15d48bdd351"
+    },
+    {
+      "path": "src/server/goal-discovery.test.ts",
+      "sha256": "1f5c58251bcfad65835f1264c22c6b09ad185b57b3eaf48bf5a0eee700944e85"
+    },
+    {
+      "path": "src/server/goal-discovery.ts",
+      "sha256": "a7ebddc4cd31944cd75f05342e6ec1cf2fca37ec442673eddbfe7021e97eb6ae"
+    },
+    {
+      "path": "src/server/legacy-goal-adapter.ts",
+      "sha256": "a929eb779274568fe84fb5f4939e71395340677083707a8485bd259974ce4ce1"
+    },
+    {
+      "path": "src/server/local-data-access.ts",
+      "sha256": "cab114eadd70d97ad0f3905d8ddfadc57cf3b64257be0fb29c7455ff6f6e87be"
+    },
+    {
+      "path": "src/server/paper-trading/ai-review.test.ts",
+      "sha256": "f2aee02d68bba9d61b289eb6862c5fb327bc733766d082bc76d44bb06c2463a6"
+    },
+    {
+      "path": "src/server/paper-trading/ai-review.ts",
+      "sha256": "ae1208e42404c9e193d777e5c849b0a19c032280c6c71fd4f4948de854e0a4e7"
+    },
+    {
+      "path": "src/server/paper-trading/conditions.ts",
+      "sha256": "29d5cea96734af9c7374f93eea5d31d671d1ffb22d359dc0dd042327e6cd3585"
+    },
+    {
+      "path": "src/server/paper-trading/erasure-scope.ts",
+      "sha256": "35da357eb3ab26508a011c4a495f2e387c68049348e149d00302de7911f9a734"
+    },
+    {
+      "path": "src/server/paper-trading/erasure.test.ts",
+      "sha256": "8bd8b21319734370bdfe8ca875e4e8aad759b1a43b9d849afff6922242282d95"
+    },
+    {
+      "path": "src/server/paper-trading/erasure.ts",
+      "sha256": "dd3cbbb05b14cd07db95bbb0e8b982f95605f504ac05de7b9e948fdb12e68651"
+    },
+    {
+      "path": "src/server/paper-trading/experiments.test.ts",
+      "sha256": "4b47ab8670e7fd777c88b948eefc6a5a402180d2649d92323ffe1f6fc2fc4ab3"
+    },
+    {
+      "path": "src/server/paper-trading/experiments.ts",
+      "sha256": "b55ffa7a05f30a2cacc0f4829d28eed25a7d685444c33d304e83d7e7a5245d7f"
+    },
+    {
+      "path": "src/server/paper-trading/export.test.ts",
+      "sha256": "1ee8a7050c9bbd62ba0934f8a26e614186e641edfabb20ccb6a27d6b547f0585"
+    },
+    {
+      "path": "src/server/paper-trading/export.ts",
+      "sha256": "94ceadfba3e148a01311d864c92066e6430ace49c5805f8a892768239c231f6b"
+    },
+    {
+      "path": "src/server/paper-trading/insights.test.ts",
+      "sha256": "043139e2420add94bbf7f9152910138b10792faf2f231dc4901387a1a29109e6"
+    },
+    {
+      "path": "src/server/paper-trading/insights.ts",
+      "sha256": "c3ca7d79aec4a5080b5381aeac442190472272ec6897c7c3b26572b4cc660a8d"
+    },
+    {
+      "path": "src/server/paper-trading/maintenance.ts",
+      "sha256": "c4832ff486ff4893c9e15a8025c8e74cd59a826448430ec4ffa586200d5ed9e7"
+    },
+    {
+      "path": "src/server/paper-trading/management.test.ts",
+      "sha256": "69a23ba6091162204b80ccac4d456ca6aaf3fb96e8281a60b992ce411bb5cb98"
+    },
+    {
+      "path": "src/server/paper-trading/market.test.ts",
+      "sha256": "237121102f1118a169af50cecd042ab17a90438f63810dba6d2d0659b40895e9"
+    },
+    {
+      "path": "src/server/paper-trading/market.ts",
+      "sha256": "480a2d699fdf144b22da1b04291a804a41ef74c58b246dc77751a3e36501900d"
+    },
+    {
+      "path": "src/server/paper-trading/monitoring.ts",
+      "sha256": "62aade693d33cc8095a88a80b1a6e10120efa60a56a318e7edf4c86d8a7b9181"
+    },
+    {
+      "path": "src/server/paper-trading/replay.test.ts",
+      "sha256": "e474263425c1256bc02861f0ece9ce98f878c5d8eaa3025c826aedd47ba422dc"
+    },
+    {
+      "path": "src/server/paper-trading/replay.ts",
+      "sha256": "b37068457a9a7cd0118661cbed973e78f619d56632aee736fdf871cc5202b6f7"
+    },
+    {
+      "path": "src/server/paper-trading/service.test.ts",
+      "sha256": "c0d12988f7c2b808d161ea2272a3fdb8bc02e4f6e14bdd6f945e477814c3d84e"
+    },
+    {
+      "path": "src/server/paper-trading/service.ts",
+      "sha256": "77eec82e076b974ff434c0f79fdcfaa347760f6ae6687bd612a7c8db800bc3d3"
+    },
+    {
+      "path": "src/server/planning-memory.test.ts",
+      "sha256": "a7c5f7bac5280da171534c7a6da4bf77c8c0131d9061f99e3372f3a5b3bae6eb"
+    },
+    {
+      "path": "src/server/planning-memory.ts",
+      "sha256": "e99973e351a20d83b534d8ad7749b8135f0b0c7e44dd73a6bee37f51fb0326dc"
+    },
+    {
+      "path": "src/server/portfolio.ts",
+      "sha256": "502d5986cd67a2789833ed2a467b7cab639311cba28b7ee302e06d08e5d0cee0"
+    },
+    {
+      "path": "src/server/product-management.ts",
+      "sha256": "032e2b102ec885643cfab0768f9b4ab582d4297d1559d077d40fae0c5b8b6ed9"
+    },
+    {
+      "path": "src/server/prompt-settings.ts",
+      "sha256": "9003e422a4b781e8b00f73ab680a6bdfa9b631fb80c3866a7e0bca5cff6fc542"
+    },
+    {
+      "path": "src/server/prompt-version.ts",
+      "sha256": "4f9604d82ee2f46dab8cf4d231b53980baf32ff358bb32be6e6810335f73db17"
+    },
+    {
+      "path": "src/server/report-prose.test.ts",
+      "sha256": "68a529312963c0a14dbe72db64c73ae03833a1e9f9e4be0a2d0722cfc4bad0dc"
+    },
+    {
+      "path": "src/server/report-prose.ts",
+      "sha256": "19faebfe171eb209d5129238a8fa63cf49287a4b44c3633bb996cc32de098fa4"
+    },
+    {
+      "path": "src/server/resource-handlers.ts",
+      "sha256": "12d4ac086d202adc28fd453886dcf68f2f43314f8799da0b9487e9d3198b79dc"
+    },
+    {
+      "path": "src/server/specialist-bridge.ts",
+      "sha256": "ab9882989c1085d27c383e64793d4c6c01bb3564804510e401e4f5a4a3fe9946"
+    },
+    {
+      "path": "src/server/specialist-managers.test.ts",
+      "sha256": "2e04de2d5b9f536886d98e7679c7fae8f2fd4438223af631b13b667f9d7cbf1c"
+    },
+    {
+      "path": "src/server/specialist-managers.ts",
+      "sha256": "6e00af45c30fc1891a4ae03e532b7a9fed2905081abfc492fa9c1303683d6e73"
+    },
+    {
+      "path": "src/server/tasks.test.ts",
+      "sha256": "a478a8497d9a5ae8b4e9a18fb5bebf08438e1a3f958460ff3d00b427a7d8e436"
+    },
+    {
+      "path": "src/server/tasks.ts",
+      "sha256": "4049f364e81a2b09b8c0854abddc5844bb88c8f2860ed794ca1410e5884c3b23"
+    },
+    {
+      "path": "src/server/transaction-classification.test.ts",
+      "sha256": "202c5355c2c316f82c9e53a81e8b105550519c303e677a51e333e03781bf7313"
+    },
+    {
+      "path": "src/server/transaction-classification.ts",
+      "sha256": "8aa0dda766af773ba6e5a67d380e0785d47e00a0c32947ec911d430ee8aa45c0"
+    },
+    {
+      "path": "src/server/transaction-import.test.ts",
+      "sha256": "c1378a1b0474594001b979079c01ab77c610edada98c65131bb9f1e25a02e188"
+    },
+    {
+      "path": "src/server/transaction-import.ts",
+      "sha256": "fdd1f6d76eee93c50cf9cabaf7c0bdfe74ed8034d9234395515fc631ddc476ba"
+    },
+    {
+      "path": "src/server/transactions.ts",
+      "sha256": "38ea2d355de4585bcdb9f7111e0ed7a7cfe5abef9346a32b5c6a92763683c395"
+    },
+    {
+      "path": "src/server/unified-database.test.ts",
+      "sha256": "e25c03d00ba9af521e47a1174d999de4cb23904317d79cfdaf04bff549bb2872"
+    },
+    {
+      "path": "src/server/unified-store.ts",
+      "sha256": "4815156137faca6e4ca187af76a45180a74aaace2d4d526b200547eabbafeb8f"
+    },
+    {
+      "path": "tsconfig.paper-worker.json",
+      "sha256": "5f8a963b5646b1034e5c8e5e713ccfecbceafe3cc81ba0a243c70d3ac25762c2"
+    }
+  ]
+}

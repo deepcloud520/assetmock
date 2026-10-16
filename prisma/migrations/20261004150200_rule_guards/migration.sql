@@ -1,0 +1,11 @@
+CREATE TRIGGER DecisionConstraint_rule_INSERT BEFORE INSERT ON DecisionConstraint WHEN NOT (
+ (NEW.type IN ('NO_USE_ASSET','NO_USE_GOAL_FUND','NO_NEW_DEBT') AND NEW.operator='NOT_USE' AND NEW.thresholdValue IS NULL AND NEW.unit IS NULL AND NEW.currency IS NULL)
+ OR (NEW.type IN ('MIN_LIQUID','NO_USE_EMERGENCY') AND NEW.operator IN ('GT','GTE') AND NEW.thresholdValue>=0 AND NEW.unit='CENTS' AND NEW.currency='CNY')
+ OR (NEW.type='MAX_DEBT_RATIO' AND NEW.operator IN ('LT','LTE') AND NEW.thresholdValue BETWEEN 0 AND 10000 AND NEW.unit='BPS' AND NEW.currency IS NULL)
+ OR (NEW.type='OTHER' AND NEW.operator='MANUAL' AND NEW.thresholdValue IS NULL AND NEW.unit IS NULL AND NEW.currency IS NULL)
+) OR (NEW.type='NO_USE_ASSET')<>(NEW.assetId IS NOT NULL) OR (NEW.type='NO_USE_GOAL_FUND')<>(NEW.goalId IS NOT NULL) OR (NEW.scope='DECISION' AND NEW.decisionId IS NULL) OR (NEW.scope='GLOBAL' AND NEW.decisionId IS NOT NULL) OR (NEW.recordKind='SNAPSHOT' AND NEW.planVersionId IS NULL)
+BEGIN SELECT RAISE(ABORT,'invalid structured redline'); END;
+CREATE TRIGGER DecisionConstraint_definition_immutable BEFORE UPDATE ON DecisionConstraint WHEN NEW.userText<>'已删除' AND (OLD.type<>NEW.type OR OLD.operator<>NEW.operator OR OLD.thresholdValue IS NOT NEW.thresholdValue OR OLD.unit IS NOT NEW.unit OR OLD.assetId IS NOT NEW.assetId OR OLD.goalId IS NOT NEW.goalId OR OLD.userText<>NEW.userText OR OLD.scope<>NEW.scope OR OLD.planVersionId IS NOT NEW.planVersionId) BEGIN SELECT RAISE(ABORT,'constraint definitions are immutable'); END;
+CREATE TRIGGER PlanAssumption_definition_immutable BEFORE UPDATE ON PlanAssumption WHEN NEW.lifecycle<>'REDACTED' AND (OLD.content<>NEW.content OR OLD.expectedValue IS NOT NEW.expectedValue OR OLD.rule<>NEW.rule OR OLD.dueOn IS NOT NEW.dueOn OR OLD.planVersionId<>NEW.planVersionId) BEGIN SELECT RAISE(ABORT,'assumption definitions are immutable'); END;
+CREATE TRIGGER DecisionReason_immutable BEFORE UPDATE ON DecisionReason WHEN NEW.evidenceSource<>'REDACTED' BEGIN SELECT RAISE(ABORT,'decision reasons are immutable'); END;
+CREATE TRIGGER BudgetVersion_contents_immutable BEFORE UPDATE ON BudgetVersion WHEN NEW.status<>'REDACTED' AND (OLD.dataJson<>NEW.dataJson OR OLD.incomeMinor<>NEW.incomeMinor OR OLD.livingMinor<>NEW.livingMinor OR OLD.validFrom<>NEW.validFrom) BEGIN SELECT RAISE(ABORT,'budget definitions are immutable'); END;

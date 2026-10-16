@@ -1,3 +1,4 @@
+import { modelConfig } from "@/lib/model-config";
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
@@ -13,9 +14,9 @@ export interface PreparedPlan {
   research?: LoanResearch;
 }
 export function model(jsonMode = false) {
-  if (!process.env.LLM_API_KEY?.trim()) throw new Error('模型未配置');
-  const modelId = process.env.LLM_MODEL || 'GLM-4.6';
-  return createOpenAICompatible({ name: 'aiping', baseURL: process.env.LLM_BASE_URL || 'https://aiping.cn/api/v1', apiKey: process.env.LLM_API_KEY,
+  if (!modelConfig('LLM').API_KEY?.trim()) throw new Error('模型未配置');
+  const modelId = modelConfig('LLM').MODEL || 'GLM-4.6';
+  return createOpenAICompatible({ name: 'aiping', baseURL: modelConfig('LLM').BASE_URL || 'https://aiping.cn/api/v1', apiKey: modelConfig('LLM').API_KEY,
     // GLM-4.6 supports disabling thinking; do not send this override to unknown models.
     transformRequestBody: args => ({ ...args,
       ...(modelId.toLowerCase() === 'glm-4.6' ? { thinking: { type: 'disabled' } } : {}),
@@ -42,7 +43,7 @@ export function fallbackGoal(profileId: string, goal: string): PreparedPlan {
 
 export async function prepareWithAI(profileId: string, goal: string): Promise<PreparedPlan> {
   const fallback = fallbackGoal(profileId, goal);
-  if (!fallback.supported || !process.env.LLM_API_KEY?.trim()) return fallback;
+  if (!fallback.supported || !modelConfig('LLM').API_KEY?.trim()) return fallback;
   const trace: Trace[] = [];
   let calls = 0;
   let selected: SetupInput | undefined;
@@ -104,7 +105,7 @@ export function ruleExplanation(facts: Fact[], notice = '以下为已结算事�
   return { source: 'rules', facts, notice, paragraphs: [] };
 }
 export async function explainWithAI(facts: Fact[], final: boolean): Promise<Explanation> {
-  if (!process.env.LLM_API_KEY?.trim()) return ruleExplanation(facts, 'AI 暂不可用，显示规则说明。');
+  if (!modelConfig('LLM').API_KEY?.trim()) return ruleExplanation(facts, 'AI 暂不可用，显示规则说明。');
   try {
     const result = await generateText({ model: model(true), maxRetries: 0, maxOutputTokens: 8192, abortSignal: AbortSignal.timeout(25000),
       system: `你是人生模拟器的${final ? '结局复盘' : '月度解释'}助手。只解释提供的事实，不推测未来事件，不输出新的金额、比例或月份。当前展示指标是剩余资金（现金加投资账户），不含车辆房产价值，未扣负债，不能称为净资产或收益。

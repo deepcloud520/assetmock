@@ -1,44 +1,61 @@
 {
-  "name": "eastflow-life-simulator",
+  "name": "financial-associates-life",
   "version": "0.1.0",
   "private": true,
   "engines": {
     "node": ">=22 <25"
   },
   "scripts": {
+    "dev:paper": "node scripts/paper-dev.mjs",
+    "paper:worker": "node scripts/paper-dev.mjs --worker-only",
+    "paper:probe": "tsc -p tsconfig.paper-worker.json && node .local-data/paper-runtime/scripts/paper-quote-probe.js",
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
-    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "lint": "eslint .",
-    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test-isolated.mjs",
+    "test:watch": "vitest",
+    "db:migrate:safe": "node scripts/database-migrate.mjs",
     "test:e2e": "playwright test",
     "test:live": "tsx scripts/live-ai.ts",
     "test:search": "tsx scripts/live-search.ts",
-    "test:live:v2": "tsx scripts/live-v2.ts"
+    "test:live:v2": "tsx scripts/live-v2.ts",
+    "dev:all": "node scripts/paper-dev.mjs",
+    "postinstall": "prisma generate",
+    "start:all": "node scripts/paper-dev.mjs --production"
   },
   "dependencies": {
+    "@prisma/client": "6.19.0",
+    "bignumber.js": "11.1.5",
+    "lucide-react": "^1.45.0",
+    "next": "16.4.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "4.3.6",
     "@ai-sdk/openai-compatible": "2.0.84",
     "ai": "6.0.308",
     "better-sqlite3": "12.11.1",
     "decimal.js": "10.6.0",
-    "next": "16.4.2",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "recharts": "3.8.0",
-    "zod": "4.3.6"
+    "recharts": "3.8.0"
   },
   "devDependencies": {
-    "@playwright/test": "1.58.2",
-    "@types/better-sqlite3": "7.6.13",
+    "@tailwindcss/postcss": "4.1.14",
     "@types/node": "22.19.15",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
     "eslint-config-next": "16.4.2",
     "eslint-plugin-sonarjs": "3.0.7",
-    "tsx": "4.21.0",
+    "prisma": "6.19.0",
+    "tailwindcss": "4.1.14",
     "typescript": "5.9.3",
-    "vitest": "4.0.18"
+    "vitest": "4.0.18",
+    "@playwright/test": "1.58.2",
+    "@types/better-sqlite3": "7.6.13",
+    "tsx": "4.21.0"
   }
 }

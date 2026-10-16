@@ -1,0 +1,5 @@
+import { db } from "@/lib/db";
+import { apiError, ApiError, getWorkspaceId } from "@/server/portfolio";
+import { dataCommand } from "@/server/data-management";
+export async function GET(request: Request) { try { const workspaceId = getWorkspaceId(request); const params = new URL(request.url).searchParams; const kind = params.get("kind") ?? ""; const entityId = params.get("entityId") ?? ""; if (!["CAR_FACTS", "CAR_REVIEW", "SIMULATION"].includes(kind)) throw new ApiError("草稿类型无效", 422); if (kind !== "SIMULATION" && !await db.carDecision.findFirst({ where: { id: entityId, workspaceId } })) throw new ApiError("决策不存在", 404); return Response.json(await db.businessDraft.findUnique({ where: { workspaceId_kind_entityId: { workspaceId, kind, entityId } } })); } catch (e) { return apiError(e); } }
+export async function POST(request: Request) { try { const body = await request.json(); if (body.command !== "DRAFT") throw new ApiError("草稿操作无效", 422); return Response.json(await dataCommand(getWorkspaceId(request), body)); } catch (e) { return apiError(e); } }

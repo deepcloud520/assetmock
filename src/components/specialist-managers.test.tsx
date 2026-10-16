@@ -1,0 +1,7 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { CashflowManager, type ManagerOverview } from "./specialist-managers";
+const data = { version: 1, budget: { incomeMinor: "1500000", livingMinor: "700000", premiumsIncluded: false, debtIncluded: false, extraFixedMinor: "0", proposedPremiumMinor: "0", proposedPremiumConfirmed: false, oneOffMinor: "0", oneOffMonth: null, cuts: [], confirmed: true, note: "" }, workspace: { portfolioRevision: 0, transactionRevision: 0, profile: null, assets: [], goals: [] }, sourceSignature: "test", insuranceNeeds: {}, investmentNeeds: {}, policies: [], holdings: [], reservations: [], premiumMinor: "0", debtMinor: "0", goalMonthlyMinor: "0", coverageState: "UNKNOWN", allocation: { totalMinor: "0", largestName: null, largestRatioPercent: null, protectedCount: 0 }, evaluations: [], selections: [], reminders: [], impacts: [], expensesReady: false, capacity: null } satisfies ManagerOverview;
+describe("professional budget inputs", () => {
+  it("renders native number inputs without thousands separators and preserves unknown-result wording", () => { const html = renderToStaticMarkup(<CashflowManager data={data} send={async () => true} workspaceId="test" onBookkeeping={() => {}} onExecution={() => {}} />); expect(html).toMatch(/name="income"[^>]*value="15000"/); expect(html).toMatch(/name="living"[^>]*value="7000"/); expect(html).not.toContain('value="15,000"'); expect(html).toContain("初步投入能力"); expect(html).toContain("账面结余不等于已存下的钱"); });
+});

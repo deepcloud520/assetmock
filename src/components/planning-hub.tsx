@@ -1,0 +1,60 @@
+"use client";
+
+import { Activity, AlertTriangle, ChevronRight, Target } from "lucide-react";
+import { useState } from "react";
+import { FuturePlanningPreview, PlanningView, type FuturePlanningResult, type PlanningResult } from "./agent-views";
+import { FinancialLifeView, type LifeOpeningData } from "./financial-life-view";
+import { ScenarioView } from "./execution-views";
+import { CarPlanningView } from "./car-planning-view";
+import type { SimulationSnapshot } from "@/domain/life-financial-simulation";
+
+export type HubTab = "plans" | "scenarios" | "car";
+
+const tabs: Array<{ id: HubTab; label: string; icon: typeof Target }> = [
+  { id: "plans", label: "方案比较", icon: Target },
+  { id: "scenarios", label: "情景推演", icon: Activity },
+];
+
+export function PlanningHub({
+  planning, planningLoading, hasGoals, onGeneratePlans, onSelectPlan, onGoToAgent,
+  futurePlanning, futurePlanningLoading, futurePlanningAdopting, onGenerateFuturePlanning, onAdoptFuturePlanning, onViewExecution,
+  simulationSnapshot, simulationStorageKey, lifeOpeningData,
+  activeGoal, assessmentCurrent, onGoToAssessment,
+  workspaceId, carIntent, onDataChange,
+  initialTab = "plans",
+}: {
+  planning: PlanningResult | null; planningLoading: boolean; hasGoals: boolean;
+  onGeneratePlans: () => void; onSelectPlan: (key: "A" | "B" | "C") => void; onGoToAgent: () => void;
+  futurePlanning: FuturePlanningResult | null; futurePlanningLoading: boolean; futurePlanningAdopting: boolean; onGenerateFuturePlanning: () => void; onAdoptFuturePlanning: (reportId: string) => void; onViewExecution: () => void;
+  simulationSnapshot: SimulationSnapshot | null; simulationStorageKey: string; lifeOpeningData?: LifeOpeningData;
+  activeGoal?: { id: string; name: string } | null;
+  assessmentCurrent?: boolean;
+  onGoToAssessment?: () => void;
+  initialTab?: HubTab;
+  workspaceId?: string; carIntent?: string; onDataChange?: () => Promise<void>;
+}) {
+  const [manualScenario, setManualScenario] = useState(false);
+  const [tab, setTab] = useState<HubTab>(initialTab);
+  const canRun = Boolean(planning?.selectedPlanKey && !planning.isStale);
+  return <div className="planning-page">
+    <header className="planning-page-header"><div><p className="planning-page-kicker">未来规划</p><h1>为重要目标，选一条清晰的路</h1><p>比较方案、安排近期行动，并检验变化带来的影响。</p></div>{activeGoal && <div className="planning-goal-context"><span>当前目标</span><strong>{activeGoal.name}</strong></div>}</header>
+    <nav className="hub-tabs" aria-label="未来规划分区">
+      {workspaceId && <button type="button" role="tab" aria-selected={tab === "car"} className={tab === "car" ? "active" : ""} onClick={() => setTab("car")}><Target size={16} />买车决策</button>}
+      {tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon size={16} />{label}</button>)}
+    </nav>
+    <div className="planning-page-content">
+      {tab === "car" && workspaceId && onDataChange && <CarPlanningView workspaceId={workspaceId} initialIntent={carIntent} onDataChange={onDataChange} onViewExecution={onViewExecution} onEditLedger={onGoToAgent} />}
+      {tab === "plans" && !activeGoal && <PlanningPrerequisite icon="goal" title="先选择一个人生目标" description="从首页的目标卡开始规划，系统会始终围绕你选择的目标生成方案。" action="返回选择目标" onAction={onGoToAgent} />}
+      {tab === "plans" && activeGoal && !assessmentCurrent && <PlanningPrerequisite icon="assessment" title="先完成现状评估" description={`规划“${activeGoal.name}”前，需要先按当前底账完成一次现状评估。`} action="前往现状评估" onAction={onGoToAssessment ?? onGoToAgent} />}
+      {tab === "plans" && activeGoal && assessmentCurrent && <><PlanningView result={planning} loading={planningLoading} hasGoals={hasGoals} onGenerate={onGeneratePlans} onNavigate={onGoToAgent} onSelect={onSelectPlan} /><FuturePlanningPreview result={futurePlanning} planning={planning} loading={futurePlanningLoading} adopting={futurePlanningAdopting} onGenerate={onGenerateFuturePlanning} onAdopt={onAdoptFuturePlanning} onViewExecution={onViewExecution} /></>}
+      {tab === "scenarios" && <><button type="button" className="button-secondary mb-4" onClick={() => setManualScenario(value => !value)}>{manualScenario ? "返回人生模拟" : "手动单事件压力测试"}</button>{manualScenario ? <ScenarioView workspaceId={workspaceId} snapshot={simulationSnapshot} canRun={canRun} storageKey={simulationStorageKey} onNavigate={() => setTab("plans")} /> : <FinancialLifeView key={simulationStorageKey} data={lifeOpeningData} storageKey={`${simulationStorageKey}_life_v1`} onNavigate={() => setTab("plans")} />}</>}
+    </div>
+  </div>;
+}
+
+function PlanningPrerequisite({ icon, title, description, action, onAction }: {
+  icon: "goal" | "assessment"; title: string; description: string; action: string; onAction: () => void;
+}) {
+  const Icon = icon === "goal" ? Target : AlertTriangle;
+  return <div className="flex min-h-[60vh] flex-col items-center justify-center text-center"><span className="grid size-14 place-items-center bg-blue-50 text-blue-700"><Icon size={25} /></span><h2 className="mt-5 text-xl font-semibold">{title}</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{description}</p><button className="button-primary mt-6" onClick={onAction}>{action}<ChevronRight size={16} /></button></div>;
+}
