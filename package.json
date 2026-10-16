@@ -1,0 +1,43 @@
+{
+  "name": "eastflow-life-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:live": "tsx scripts/live-ai.ts",
+    "test:search": "tsx scripts/live-search.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "2.0.84",
+    "ai": "6.0.308",
+    "better-sqlite3": "12.11.1",
+    "decimal.js": "10.6.0",
+    "next": "16.4.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "recharts": "3.8.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "22.19.15",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.4.2",
+    "eslint-plugin-sonarjs": "3.0.7",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}

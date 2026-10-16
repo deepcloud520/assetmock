@@ -1,0 +1,27 @@
+# Local system files
+.DS_Store
+Thumbs.db
+
+# Credentials and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies and generated output
+node_modules/
+dist/
+build/
+.next/
+coverage/
+*.log
+.venv/
+__pycache__/
+
+# Local code analysis
+.codegraph/
+data/*.sqlite*
+test-results/
+playwright-report/
+*.tsbuildinfo
