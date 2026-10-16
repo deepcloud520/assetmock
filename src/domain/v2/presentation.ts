@@ -12,8 +12,9 @@ export function stageFacts(run: Run, from: number, to = run.state.month): Fact[]
     const ledgers = months.flatMap(m => m.paths[id].ledger ? [m.paths[id].ledger!] : []);
     const income = ledgers.reduce((v, l) => v + l.salary + l.bonus, 0);
     const expense = ledgers.reduce((v, l) => v + l.living + l.running + l.medical, 0);
+    const investmentLoss = ledgers.reduce((v, l) => v + l.fundLoss, 0);
     const repaid = ledgers.reduce((v, l) => v + l.debtPrincipal + l.loanPrincipal + l.interest, 0);
-    facts.push({ id: `stage:${from}:${to}:${id}`, text: `${id.toUpperCase()} ${run.setup.plans[id].label}：第${from + 1}至${to}月成功结算部分，收入${money(income)}元，生活及持有、医疗支出${money(expense)}元，还款${money(repaid)}元；剩余资金变化${money(funds(end) - funds(start))}元。余额截至第${end.lastMonth}月。` });
+    facts.push({ id: `stage:${from}:${to}:${id}`, text: `${id.toUpperCase()} ${run.setup.plans[id].label}：第${from + 1}至${to}月成功结算部分，收入${money(income)}元，生活及持有、医疗支出${money(expense)}元，还款${money(repaid)}元，投资损失${money(investmentLoss)}元；剩余资金变化${money(funds(end) - funds(start))}元。余额截至第${end.lastMonth}月。` });
   }
   return facts;
 }
@@ -44,7 +45,7 @@ export function toPublic(run: Run): PublicRun {
   const trialResults = trials(run);
   if (run.pending) {
     facts.push({ id: 'pending:events', text: `第${run.pending.month}月待选择，尚未结算：${run.pending.events.map(e => e.title).join('、')}。` });
-    trialResults.forEach(t => facts.push({ id: `trial:${t.path}:${t.choice}`, text: `${t.path.toUpperCase()}选择${choiceLabels[t.choice]}，已知本月事件并假设之后没有新事件的六个月试算：截至第${t.lastMonth}月剩余资金${money(t.funds)}元${t.failureMonth ? `，第${t.failureMonth}月资金不足` : ''}；不是未来保证。` }));
+    trialResults.forEach(t => facts.push({ id: `trial:${t.path}:${t.choice}`, text: `${t.path.toUpperCase()}选择${choiceLabels[t.choice]}（${{ lower: '停薪3个月，之后工资固定为原工资80%', wait: '停薪6个月，之后恢复原工资', temporary: '停薪3个月，再3个月固定领取原工资40%，之后恢复原工资', accept: '下月工资增加10%，生活费增加500元', decline: '工资与支出维持现状' }[t.choice]}），已知本月事件并假设之后没有新事件的六个月试算：截至第${t.lastMonth}月剩余资金${money(t.funds)}元${t.failureMonth ? `，第${t.failureMonth}月资金不足` : ''}；不是未来保证。` }));
   }
   return { schemaVersion: 2, id: run.id, version: run.version, input: run.setup.input, profile: run.setup.profile, plans: run.setup.plans, rules: run.setup.rules, month: run.state.month,
     totalMonths: run.setup.rules.months, status: run.status, paths: run.state.paths, pending: run.pending, trials: trialResults, history: run.history,

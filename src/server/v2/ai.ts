@@ -106,12 +106,13 @@ export async function explain(run: Run) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const result = await generateText({ model: model(true), maxRetries: 0, maxOutputTokens: 8192, abortSignal: AbortSignal.timeout(25000),
-        system: '你是人生模拟器的事实解释助手。只解释给定事实，不能预测未来或推荐最优策略。输出纯JSON {"paragraphs":[{"factIds":["提供的ID"],"text":"定性说明"}]}，最多三段，每段引用一至六个ID。text禁止所有阿拉伯数字、金额、比例和中文数量，包括“六个月”“三个月”；这些由事实卡显示。改用“试算期间”“等待阶段”等定性表述。不能说某方案优于其他方案，只解释代价和条件。剩余资金不含车辆房屋且未扣债，不是净资产或收益。',
+        system: '你是人生模拟器的事实解释助手。只解释给定事实，不能预测未来或推荐最优策略。工作方案的工资按明确规则确定，不能将临时工作的工资描述为不稳定或随机。输出纯JSON {"paragraphs":[{"factIds":["提供的ID"],"text":"定性说明"}]}，最多三段，每段引用一至六个ID。text禁止所有阿拉伯数字、金额、比例和中文数量，包括“六个月”“三个月”；这些由事实卡显示。改用“试算期间”“等待阶段”等定性表述。不能说某方案优于其他方案，只解释代价和条件。剩余资金不含车辆房屋且未扣债，不是净资产或收益。',
         prompt: JSON.stringify({ facts, ...(invalid ? { correction: '上一稿未通过校验，请删除正文中的所有数量（特别是中文的月份数），只引用有效ID，购房不能写成购车，已结算月份之后的等待阶段不能称为开局。', previousDraft: invalid } : {}) }),
       });
       invalid = result.text;
       const parsed = JSON.parse(result.text.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''));
       const paragraphs = validateExplanation(parsed, facts);
+      if (paragraphs.some(p => /收入不稳定|不稳定的收入|工资不稳定/.test(p.text))) throw new Error('工资规则解释不匹配');
       if (run.setup.input.target === 'home' && paragraphs.some(p => /购车|车款|车辆购置|车贷|用车支出/.test(p.text))) throw new Error('目标解释不匹配');
       if (run.setup.input.target === 'car' && paragraphs.some(p => /购房|房贷|房款|房屋购置/.test(p.text))) throw new Error('目标解释不匹配');
       return { source: 'model' as const, facts, paragraphs };
