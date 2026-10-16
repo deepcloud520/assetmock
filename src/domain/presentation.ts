@@ -63,7 +63,7 @@ export function publicRun(run: StoredRun): PublicRun {
       lastSettledMonth: p.lastSettledMonth, status: p.status, failure: p.failure };
   };
   return {
-    displayVersion: 'funds-v1', id: run.id, month: run.state.month, status: run.status,
+    displayVersion: 'funds-v1', id: run.id, month: run.state.month, totalMonths: run.setup.rules.months, status: run.status,
     profile: { id: run.setup.profile.id, name: run.setup.profile.name, description: run.setup.profile.description },
     input: { profileId: run.setup.profile.id, price: run.setup.purchase.price, offerId: run.setup.loan.id,
       downPaymentPercent: run.setup.loan.downPaymentPercent, termMonths: run.setup.loan.termMonths },

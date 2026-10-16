@@ -9,8 +9,8 @@ import type { EventTape, PublicRun, Setup, StoredRun, SearchDocument, LoanOffer 
 export class ServiceError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
-export function newTape(): EventTape {
-  return Array.from({ length: 12 }, () => ({ medical: randomInt(1000000), jobLoss: randomInt(1000000), bonusDelay: randomInt(1000000), marketDrop: randomInt(1000000) }));
+export function newTape(months: number): EventTape {
+  return Array.from({ length: months }, () => ({ medical: randomInt(1000000), jobLoss: randomInt(1000000), bonusDelay: randomInt(1000000), marketDrop: randomInt(1000000) }));
 }
 
 export class RunStore {
@@ -31,10 +31,11 @@ export class RunStore {
     `);
   }
   create(sessionId: string, setup: Setup, options?: { tape?: EventTape; parentId?: string }): StoredRun {
+    if (options?.tape && options.tape.length !== setup.rules.months) throw new ServiceError(422, '随机记录长度必须与模拟周期一致。');
     const initial = createInitialState(setup);
     const now = new Date().toISOString();
     const run: StoredRun = { id: randomUUID(), sessionId, createdAt: now, confirmedAt: now,
-      setup: structuredClone(setup), tape: structuredClone(options?.tape ?? newTape()), initial,
+      setup: structuredClone(setup), tape: structuredClone(options?.tape ?? newTape(setup.rules.months)), initial,
       state: structuredClone(initial), history: [], status: 'running', parentId: options?.parentId };
     this.db.prepare('INSERT INTO runs VALUES (?,?,?,?)').run(run.id, sessionId, JSON.stringify(run), 0);
     return run;
@@ -51,7 +52,7 @@ export class RunStore {
       if (cached) {
         if (cached.expected_month !== expectedMonth) throw new ServiceError(409, '请求标识已用于其他月份。');
         const response = JSON.parse(cached.response) as PublicRun;
-        if (response.displayVersion !== 'funds-v1') {
+        if (response.displayVersion !== 'funds-v1' || response.totalMonths === undefined) {
           // Upgrade old cached views from their original month, never from the latest balances.
           const history = run.history.slice(0, response.month);
           return publicRun({ ...run, history, state: history.length ? stateFromResult(history.at(-1)!) : run.initial, status: response.status });

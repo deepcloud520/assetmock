@@ -47,7 +47,7 @@ function prepareForSession(raw: unknown, sid: string) {
   return prepareSetup(input, input.offerId.startsWith('web-') ? [store().offer(sid, input.offerId)] : []);
 }
 async function explanationRequest(run: StoredRun, input: unknown, sid: string) {
-  const args = z.object({ month: z.number().int().min(1).max(12), final: z.boolean().default(false) }).strict().parse(input);
+  const args = z.object({ month: z.number().int().min(1).max(run.setup.rules.months), final: z.boolean().default(false) }).strict().parse(input);
   if (args.month > run.state.month || (args.final && run.status !== 'ended')) throw new ServiceError(422, '只能解释已揭晓的结果。');
   const key = args.final ? 'funds-v1:final' : `funds-v1:month:${args.month}`;
   const cached = store().cached(run.id, key) as Explanation | undefined;
@@ -82,7 +82,7 @@ export const POST = endpoint(async (req, sid) => {
   if (route[0] !== 'runs' || route.length !== 3) throw new ServiceError(404, '接口不存在。');
   const id = route[1];
   if (route[2] === 'advance') {
-    const args = z.object({ expectedMonth: z.number().int().min(0).max(12), requestKey: z.string().uuid() }).strict().parse(input);
+    const args = z.object({ expectedMonth: z.number().int().min(0).max(store().get(id, sid).setup.rules.months), requestKey: z.string().uuid() }).strict().parse(input);
     return store().advance(id, sid, args.expectedMonth, args.requestKey);
   }
   const run = store().get(id, sid);

@@ -6,12 +6,12 @@ function setTape(id: string, changes: Record<number, Record<string, number>> = {
   try {
     const row = db.prepare('SELECT body FROM runs WHERE id=?').get(id) as { body: string };
     const run = JSON.parse(row.body);
-    run.tape = Array.from({ length: 12 }, (_, i) => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999, ...changes[i + 1] }));
+    run.tape = Array.from({ length: run.setup.rules.months }, (_, i) => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999, ...changes[i + 1] }));
     db.prepare('UPDATE runs SET body=? WHERE id=?').run(JSON.stringify(run), id);
   } finally { db.close(); }
 }
 
-test('完整界面：角色、方案、确认、十二月、刷新和相同经历重玩', async ({ page }) => {
+test('完整界面：角色、方案、确认、十八月、刷新和相同经历重玩', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   await expect(page.getByRole('button', { name: '选择林舟' })).toBeVisible();
@@ -20,7 +20,7 @@ test('完整界面：角色、方案、确认、十二月、刷新和相同经�
   await page.getByRole('button', { name: '读取资料，整理方案' }).click();
   await expect(page.getByText('预设资料与手动模式', { exact: true })).toBeVisible();
   await expect(page.getByText('¥4,259.07', { exact: true })).toBeVisible();
-  const start = page.getByRole('button', { name: '开始我的十二个月' });
+  const start = page.getByRole('button', { name: '开始我的18个月' });
   await expect(start).toBeDisabled();
   await page.getByRole('checkbox').check();
   await start.click();
@@ -45,14 +45,17 @@ test('完整界面：角色、方案、确认、十二月、刷新和相同经�
   await expect(page.getByTestId('loan-cash-balance')).toHaveText('¥203,240.93');
   await expect(page.getByTestId('loan-liabilities-balance')).toHaveText('¥136,440.93');
   await expect(page.getByTestId('loan-purchase-paid')).toHaveText('¥64,259.07');
-  for (let i = 2; i <= 12; i++) {
+  for (let i = 2; i <= 18; i++) {
     await page.getByRole('button', { name: /揭晓下个月/ }).click();
-    await expect(page.getByText(`已揭晓第 ${i} / 12 个月`, { exact: true })).toBeVisible();
+    await expect(page.getByText(`已揭晓第 ${i} / 18 个月`, { exact: true })).toBeVisible();
   }
-  await expect(page.getByTestId('cash-funds')).toHaveText('¥210,000.00');
-  await expect(page.getByTestId('loan-funds')).toHaveText('¥298,891.16');
-  await expect(page.getByTestId('loan-liabilities-balance')).toHaveText('¥96,096.86');
-  await expect(page.getByTestId('loan-purchase-paid')).toHaveText('¥111,108.84');
+  await expect(page.getByTestId('cash-funds')).toHaveText('¥255,000.00');
+  await expect(page.getByTestId('loan-funds')).toHaveText('¥318,336.74');
+  await expect(page.getByTestId('loan-liabilities-balance')).toHaveText('¥73,140.04');
+  await expect(page.getByTestId('loan-purchase-paid')).toHaveText('¥136,663.26');
+  await expect(page.getByText('完成18个月', { exact: false }).first()).toBeVisible();
+  const explanation = await page.request.post(`/api/runs/${id}/explanation`, { data: { month: 18, final: true } });
+  expect(explanation.ok()).toBe(true);
   await page.screenshot({ path: 'test-results/ending-desktop.png', fullPage: true });
   await page.getByRole('button', { name: '相同经历再试一次' }).click();
   await page.getByRole('checkbox').check();
@@ -89,7 +92,7 @@ test('真实API：会话隔离、重试、竞争、未来解释拒绝', async ({
 test('手机端：随机事件、失败路径与键盘可操作', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/'); await page.getByRole('button', { name: '选择陈夏' }).click();
-  await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的十二个月' }).click();
+  await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的18个月' }).click();
   await expect(page.getByTestId('cash-funds')).toBeVisible();
   const id = await page.evaluate(() => localStorage.getItem('life-run'));
   setTape(id!, { 1: { medical: 0, jobLoss: 0, marketDrop: 0 }, 4: { bonusDelay: 0 } });
@@ -103,7 +106,7 @@ test('手机端：随机事件、失败路径与键盘可操作', async ({ page 
   await page.screenshot({ path: 'test-results/medical-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.getByRole('button', { name: /揭晓下个月/ }).click();
-  await expect(page.getByText('已揭晓第 2 / 12 个月')).toBeVisible();
+  await expect(page.getByText('已揭晓第 2 / 18 个月')).toBeVisible();
 });
 
 test('联网资料：未知费用待确认、网页方案入账与恢复、跨会话拒绝', async ({ page, playwright }) => {
@@ -139,7 +142,7 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
   await useConditions.click();
   await expect(page.getByText('当前采用参考网页设定的模拟条件。', { exact: false })).toBeVisible();
   await page.getByRole('checkbox', { name: /我已核对参数/ }).check();
-  await page.getByRole('button', { name: '开始我的十二个月' }).click();
+  await page.getByRole('button', { name: '开始我的18个月' }).click();
   await expect(page.getByTestId('loan-funds')).toHaveText('¥238,000.00');
   await page.reload(); await expect(page.getByTestId('loan-funds')).toHaveText('¥238,000.00');
   const id = await page.evaluate(() => localStorage.getItem('life-run'));
@@ -153,13 +156,13 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
 
 test('收入中断持续三个月，奖金独立到账，复职后工资永久降至80%', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: '选择林舟' }).click();
-  await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的十二个月' }).click();
+  await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的18个月' }).click();
   await expect(page.getByTestId('cash-funds')).toBeVisible();
   const id = await page.evaluate(() => localStorage.getItem('life-run')); setTape(id!, { 3: { jobLoss: 0 } });
   const employment = page.getByRole('region', { name: '就业与收入' });
   for (let month = 1; month <= 7; month++) {
     await page.getByRole('button', { name: /揭晓下个月/ }).click();
-    await expect(page.getByText(`已揭晓第 ${month} / 12 个月`, { exact: true })).toBeVisible();
+    await expect(page.getByText(`已揭晓第 ${month} / 18 个月`, { exact: true })).toBeVisible();
     if (month >= 3 && month <= 5) {
       await expect(employment).toContainText('持续求职中');
       await expect(employment).toContainText('本月工资：¥0.00');
