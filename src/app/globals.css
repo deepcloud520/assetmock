@@ -4071,3 +4071,4 @@ body {
 .integration-confirm input { margin-top:5px; }
 .integration-reports article { display:flex; justify-content:space-between; gap:16px; align-items:center; padding:20px 0; border-bottom:1px solid #dce5f0; }
 @media(max-width:700px){.integration-opening{padding:12px}.integration-fields{grid-template-columns:1fr 1fr}.integration-reports article{flex-wrap:wrap}.integration-opening h2{font-size:23px}.life-game .shell{padding:0 12px}}
+.demo-switch {display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;font-size:12px}.demo-switch strong{color:#1355ED}.demo-switch [role=alert]{color:#E02D2D}

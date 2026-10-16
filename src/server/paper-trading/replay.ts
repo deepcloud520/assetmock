@@ -42,12 +42,12 @@ async function publishQuotes(tx: Tx, sessionId: string, datasetId: string, clock
       bidQuantity: replayCapacity(b.volumeShares), askQuantity: replayCapacity(b.volumeShares), lowerMinor: b.lowerMinor, upperMinor: b.upperMinor }, update: {} });
   }
 }
-export async function createReplaySession(db: PrismaClient, workspaceId: string, raw: unknown) {
+export async function createReplaySession(db: PrismaClient, workspaceId: string, raw: unknown, purpose: "MANUAL" | "AI" = "MANUAL") {
   const data = z.object({ datasetId: z.string().min(1), name: z.string().max(80).default("历史回放账户"), initialMinor: z.string().regex(/^[1-9]\d{1,13}$/).default("10000000") }).parse(raw);
   return transaction(db, async tx => {
     const dataset = await tx.paperReplayDataset.findFirst({ where: { id: data.datasetId, workspaceId } }); if (!dataset) throw new PaperError("历史数据集不存在", 404);
     const first = await tx.paperReplayBar.findFirst({ where: { datasetId: dataset.id }, orderBy: { closeAt: "asc" } }); if (!first) throw new PaperError("历史数据集没有可用K线");
-    const a = await createAccountInTransaction(tx, workspaceId, first.closeAt, { mode: "REPLAY", purpose: "MANUAL", name: data.name, initialMinor: BigInt(data.initialMinor) });
+    const a = await createAccountInTransaction(tx, workspaceId, first.closeAt, { mode: "REPLAY", purpose, name: data.name, initialMinor: BigInt(data.initialMinor) });
     const session = await tx.paperReplaySession.create({ data: { workspaceId, accountId: a.id, datasetId: dataset.id, clock: first.closeAt, status: "PAUSED" } });
     await publishQuotes(tx, session.id, dataset.id, session.clock);
     return session;

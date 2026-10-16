@@ -9,7 +9,7 @@ import { openingDraft } from './opening';
 export type Context = { workspaceId:string; sessionId:string };
 export function simulationEndpoint(handler:(req:NextRequest,owner:string,context:Context)=>Promise<unknown>){
  return endpoint(async(req,sessionId)=>{
-  assertLocal(req);
+  try { assertLocal(req); } catch { throw new ServiceError(403,"新情景推演仅允许本机同源访问"); }
   const workspaceId=req.headers.get('X-Workspace-Id');
   if(!workspaceId||!await db.workspace.findUnique({where:{id:workspaceId}}))throw new ServiceError(404,'工作区不存在');
   return handler(req,`integrated:${workspaceId}:${sessionId}`,{workspaceId,sessionId});

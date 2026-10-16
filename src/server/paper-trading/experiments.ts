@@ -22,7 +22,7 @@ async function experiment(tx: Tx, workspaceId: string, id: string, expectedVersi
   if (e.status === "ARCHIVED") throw new PaperError("策略实验已归档");
   if (expectedVersion !== undefined && e.version !== expectedVersion) throw new PaperError("实验已变化，请刷新后确认", 409);
   const a = await account(tx, workspaceId, e.accountId, false);
-  if (a.purpose !== "AI" || a.mode !== "LIVE") throw new PaperError("账户用途与策略实验不一致", 403);
+  if (a.purpose !== "AI" || !["LIVE", "REPLAY"].includes(a.mode)) throw new PaperError("账户用途与策略实验不一致", 403);
   return { e, a };
 }
 async function cancelOpen(tx: Tx, a: PaperAccount, now: Date) {
@@ -153,7 +153,7 @@ async function currentAuthorization(tx: Tx, workspaceId: string, id: string, now
   const { e, a } = await experiment(tx, workspaceId, id);
   if (e.status !== "RUNNING") throw new PaperError("实验已暂停或授权失效", 409);
   const auth = await tx.paperStrategyAuthorization.findFirst({ where: { workspaceId, experimentId: id, status: "ACTIVE" }, orderBy: { confirmedAt: "desc" }, include: { strategy: true, stockPool: true } });
-  if (!auth || auth.expiresAt <= now || auth.strategy.status !== "CONFIRMED") throw new PaperError("实验授权已过期或策略未确认", 409);
+  if (!auth || auth.expiresAt <= (a.mode === 'REPLAY' ? new Date() : now) || auth.strategy.status !== "CONFIRMED") throw new PaperError("实验授权已过期或策略未确认", 409);
   if (auth.strategy.experimentId !== id || auth.stockPool.experimentId !== id) throw new PaperError("授权关联的策略或股票池不属于本实验", 409);
   return { e, a, auth, limits: strategyLimitsSchema.parse(JSON.parse(auth.limitsJson)), symbols: JSON.parse(auth.stockPool.instrumentIdsJson) as string[] };
 }
@@ -162,7 +162,7 @@ async function riskContext(tx: Tx, a: PaperAccount, limits: StrategyLimits, now:
   if (v.quality !== "CURRENT" || v.equityMinor === null || v.equityMinor <= 0n) throw new PaperError("估值不足，禁止自动下单");
   const day = chinaDay(now);
   const snapshots = await tx.paperEquitySnapshot.findMany({ where: { accountId: a.id, quality: "CURRENT", equityMinor: { not: null }, createdAt: { lte: now } }, orderBy: { createdAt: "asc" } });
-  const priorCloses = snapshots.filter(s => s.key.startsWith("close:") && chinaDay(s.createdAt) < day);
+  const priorCloses = snapshots.filter(s => (a.mode === "REPLAY" || s.key.startsWith("close:")) && chinaDay(s.createdAt) < day);
   const priorClose = priorCloses[priorCloses.length - 1];
   const dailyBase = priorClose?.equityMinor ?? (chinaDay(a.createdAt) === day ? a.initialMinor : null);
   if (dailyBase === null) throw new PaperError("缺少上一有效收盘估值，需核对后恢复");
@@ -197,8 +197,10 @@ async function finishRun(db: PrismaClient, id: string, status: string, reason: s
 }
 function safeFailure(error: unknown) { return error instanceof PaperError ? error.message : error instanceof z.ZodError ? "模型输出不符合交易结构，已跳过" : "模型或资料暂时不可用，已跳过本轮"; }
 export async function executeStrategyRun(db: PrismaClient, workspaceId: string, id: string, options: { model?: StrategyModel; now?: Date; beforeSubmit?: (tx: Tx) => Promise<void> } = {}) {
-  const clock = () => options.now ?? new Date(), now = clock();
-  if (!continuous(now)) return { status: "OUTSIDE_SESSION" };
+  const origin = await db.paperStrategyExperiment.findFirst({where:{id,workspaceId},include:{account:true}});
+  const replay = origin?.account.mode === 'REPLAY' ? await db.paperReplaySession.findUniqueOrThrow({where:{accountId:origin.accountId}}) : null;
+  const clock = () => replay?.clock ?? options.now ?? new Date(), now = clock();
+  if (!replay && !continuous(now)) return { status: "OUTSIDE_SESSION" };
   const source = await transaction(db, async tx => {
     const existing = await tx.paperStrategyRun.findUnique({ where: { experimentId_slot: { experimentId: id, slot: strategySlot(now) } } });
     if (existing) { if (existing.workspaceId !== workspaceId) throw new PaperError("实验不存在", 404); return { prior: existing }; }

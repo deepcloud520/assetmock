@@ -1,0 +1,26 @@
+import {it,expect} from 'vitest';
+import {db} from '../src/lib/db';
+import {createDemoWorkspace} from '../src/server/demo';
+import {previewOrder,submitOrder,reconcile} from '../src/server/paper-trading/service';
+import {advanceReplay} from '../src/server/paper-trading/replay';
+import {updateStockPool,draftStrategy,confirmStrategy,authorizeExperiment,executeStrategyRun} from '../src/server/paper-trading/experiments';
+it('demo trades and AI replay use separate ledgers without qualifying live market data',async()=>{
+ const liveRules=await db.paperRuleVersion.findMany(),calendar=await db.marketCalendar.count();
+ const d=await createDemoWorkspace();expect(d.id.startsWith('demo-')).toBe(true);
+ const assets=await db.asset.findMany({where:{workspaceId:d.id}});
+ const s=await db.paperReplaySession.findUniqueOrThrow({where:{accountId:d.manualAccountId}});
+ const preview=await previewOrder(db,d.id,d.manualAccountId,{instrumentId:'sh600000',side:'BUY',quantity:100,limitMinor:'1000',reason:'演示手动委托'});
+ expect(preview.blockers).toEqual([]);await submitOrder(db,d.id,d.manualAccountId,preview.previewId,'demo-manual-order');await advanceReplay(db,d.id,s.id,s.version);
+ expect(await db.paperFill.count({where:{accountId:d.manualAccountId}})).toBe(1);expect(await reconcile(db,d.manualAccountId)).toEqual([]);
+ const e=await db.paperStrategyExperiment.findFirstOrThrow({where:{accountId:d.aiAccountId}});
+ const pool=await updateStockPool(db,d.id,e.id,{expectedVersion:e.version,confirmed:true,instrumentIds:['sh600000']});
+ const draft=await draftStrategy(db,d.id,e.id,{expectedVersion:pool.experiment.version,text:'演示：使用当前回放报价买100股，服从仓位限制'}, {model:async()=>({objective:'演示',observation:'当前回放报价',buyConditions:['买100股'],sellConditions:['不卖'],holdConditions:['资料不足'],allocation:'服从仓位限制',stopConditions:['用户停止'],requiredData:['LIVE_QUOTES','ACCOUNT'],missingData:[]})});
+ const confirmed=await confirmStrategy(db,d.id,e.id,{expectedVersion:draft.experiment.version,strategyId:draft.strategy.id,confirmed:true});
+ await authorizeExperiment(db,d.id,e.id,{expectedVersion:confirmed.experiment.version,strategyId:draft.strategy.id,stockPoolId:pool.pool.id,confirmed:true});
+ const result=await executeStrategyRun(db,d.id,e.id,{model:async(_prompt,input)=>({action:'BUY',instrumentId:'sh600000',quantity:100,limitMinor:'1000',reason:'合成行情演示',evidenceIds:[(input as {evidenceIds:string[]}).evidenceIds[0]]})});
+ expect(result.status).toBe('SUBMITTED');
+ const replay=await db.paperReplaySession.findUniqueOrThrow({where:{accountId:d.aiAccountId}});await advanceReplay(db,d.id,replay.id,replay.version);
+ expect(await db.paperFill.count({where:{accountId:d.aiAccountId}})).toBe(1);expect(await reconcile(db,d.aiAccountId)).toEqual([]);
+ expect(await db.asset.findMany({where:{workspaceId:d.id}})).toEqual(assets);expect(await db.marketCalendar.count()).toBe(calendar);
+ expect((await db.paperRuleVersion.findMany()).filter(r=>JSON.parse(r.configJson).qualified)).toEqual(liveRules.filter(r=>JSON.parse(r.configJson).qualified));
+});

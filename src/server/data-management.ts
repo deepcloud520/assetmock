@@ -1,3 +1,4 @@
+import { v2Store } from "./v2/store";
 import { addMonths } from "@/domain/car-planning";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
@@ -24,17 +25,19 @@ export async function dataOverview(workspaceId: string) {
   const integrity = await db.$queryRawUnsafe<{ integrity_check: string }[]>("PRAGMA integrity_check"); const foreignKeys = await db.$queryRawUnsafe<unknown[]>("PRAGMA foreign_key_check");
   const diagnostics = [...(integrity.some((r) => r.integrity_check !== "ok") ? ["数据库完整性检查需处理"] : []), ...(foreignKeys.length ? ["数据库存在失效关联，请停止修改并核对"] : []), ...issues.filter((i) => i.status === "OPEN").map((i) => i.note), ...workspace.goals.filter((g) => !g.priorityConfirmedAt).map((g) => `${g.name}优先级尚未确认`)];
   for (const a of workspace.assets) { const reservations = await db.carFundingReservation.aggregate({ where: { workspaceId, assetId: a.id }, _sum: { amountMinor: true } }); if ((reservations._sum.amountMinor ?? 0n) > a.currentValueMinor) diagnostics.push(`${a.name}预留超过当前余额`); }
-  return serialize({ workspace, budgets, items, balances, constraints, assumptions, verifications, reasons, checks, issues, revisions, jobs, products, productVersions: versions, productSources: sources, drafts, comparison, monthlyActual, diagnostics, decisions, evidence, transactions, backups: await listBackups(), integrity: { valid: integrity.every((r) => r.integrity_check === "ok") && foreignKeys.length === 0 }, sourceNotice: "原附件不长期保存；来源说明和哈希用于核对，不可恢复原文。" });
+  const simulationReports = await db.simulationReport.findMany({where:{workspaceId}});
+  return serialize({ simulationReports, workspace, budgets, items, balances, constraints, assumptions, verifications, reasons, checks, issues, revisions, jobs, products, productVersions: versions, productSources: sources, drafts, comparison, monthlyActual, diagnostics, decisions, evidence, transactions, backups: await listBackups(), integrity: { valid: integrity.every((r) => r.integrity_check === "ok") && foreignKeys.length === 0 }, sourceNotice: "原附件不长期保存；来源说明和哈希用于核对，不可恢复原文。" });
 }
 async function targetExists(tx: Prisma.TransactionClient, workspaceId: string, type: string, id: string) {
   return type === "ASSET" ? tx.asset.findFirst({ where: { id, workspaceId } }) : type === "LIABILITY" ? tx.liability.findFirst({ where: { id, workspaceId } }) : type === "GOAL" ? tx.goal.findFirst({ where: { id, workspaceId } }) : type === "POLICY" ? tx.insurancePolicy.findFirst({ where: { id, workspaceId } }) : tx.transaction.findFirst({ where: { id, workspaceId } });
 }
 export async function deletionPreview(workspaceId: string, type: string, id: string) {
   await db.$transaction(async (tx) => { if (!await targetExists(tx, workspaceId, type, id)) throw new ApiError("记录不存在", 404); });
-  return { entityType: type, entityId: id, dataEpoch: (await db.workspace.findUniqueOrThrow({ where: { id: workspaceId } })).dataEpoch, conservative: true, affected: ["目标记录及其修改历史、来源和导入记录", "本空间历史方案、评估、复盘和生成解释（旧资料依赖不明，整体清除内容）", "本空间对话、偏好、预算历史副本与业务草稿", "本空间规划行动及资金预留将停止并重新核对", "本机应用管理的全部旧数据库备份；其他空间的当前记录保持", "当前浏览器业务缓存；其他已打开浏览器在下一次读取数据时清理"], unmanaged: "应用外导出、手工备份和已关闭浏览器的缓存不能由应用远程清除；后者下次进入清理。", backups: (await listBackups()).length };
+  return { entityType: type, entityId: id, dataEpoch: (await db.workspace.findUniqueOrThrow({ where: { id: workspaceId } })).dataEpoch, conservative: true, affected: ["目标记录及其修改历史、来源和导入记录", "本空间历史方案、评估、复盘和生成解释（旧资料依赖不明，整体清除内容）", "本空间对话、偏好、预算历史副本与业务草稿，以及新情景推演快照、游戏、报告与解释", "本空间规划行动及资金预留将停止并重新核对", "页面备份功能管理的全部旧数据库备份；其他空间的当前记录保持", "当前浏览器业务缓存；其他已打开浏览器在下一次读取数据时清理"], unmanaged: "应用外导出、手工备份（包括 backup:all 生成的离线两库备份）须另行删除；已关闭浏览器的缓存下次进入清理。", backups: (await listBackups()).length };
 }
 async function purgeDatabase(tx: Prisma.TransactionClient, workspaceId: string, type: string, id: string) {
   const target = await targetExists(tx, workspaceId, type, id); if (!target) throw new ApiError("记录不存在", 404);
+  await tx.simulationOpening.deleteMany({where:{workspaceId}}); await tx.simulationReport.deleteMany({where:{workspaceId}});
   const now = new Date();
   if (type === "ASSET") { await tx.holdingDetail.deleteMany({ where: { workspaceId, assetId: id } }); await tx.asset.update({ where: { id }, data: { name: "已删除", currentValueMinor: 0n, goalId: null, type: "OTHER", source: "REDACTED", deletedAt: now } }); }
   if (type === "LIABILITY") await tx.liability.update({ where: { id }, data: { name: "已删除", outstandingBalanceMinor: 0n, monthlyPaymentMinor: 0n, totalRepaymentMinor: null, principalMinor: null, interestMinor: null, remainingMonths: null, repaymentMethod: null, source: "REDACTED", deletedAt: now } });
@@ -94,6 +97,7 @@ export async function deletePermanently(workspaceId: string, type: string, id: s
     if (!job) throw new ApiError("删除任务不存在", 404); if (job.status === "DONE") return { job, cacheReset: true };
     try {
       if (job.phase === "DATABASE") await db.$transaction(async (tx) => { await purgeDatabase(tx, workspaceId, type, id); await tx.deletionJob.update({ where: { id: job!.id }, data: { phase: "FILES", status: "PROCESSING", error: null } }); }, { timeout: 15000 });
+      v2Store().purgeWorkspace(workspaceId);
       await clearManagedBackups();
       // Remove free-page remnants before generating the sanitized backup.
       await db.$queryRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE)");

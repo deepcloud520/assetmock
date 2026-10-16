@@ -1,0 +1,5 @@
+import {loadEnvConfig} from '@next/env';
+import assert from 'node:assert/strict';
+loadEnvConfig(process.cwd());
+async function main(){const {db}=await import('../src/lib/db');const w=await db.workspace.findFirstOrThrow({where:{id:{startsWith:'demo-'}},orderBy:{createdAt:'desc'}});const {openingDraft,confirmOpening,frozenOpening}=await import('../src/server/simulations/opening');const {prepare}=await import('../src/server/v2/ai');const d=await openingDraft(w.id,null);const o=await confirmOpening(w.id,'live-ledger',{...d.values,age:30,target:'home',goalId:null,sourceSignature:d.sourceSignature,confirmed:true,acknowledgeRestrictions:true});const frozen=await frozenOpening(o.id,w.id,'live-ledger');console.log('Start real model with confirmed ledger');const p=await prepare('home',o.profile.id,'买100万元住房，30年贷款，比较30%和50%首付。','live-ledger',frozen);console.log(JSON.stringify({source:p.source,trace:p.trace,profileMatches:p.input.profileId===o.profile.id}));await db.$disconnect();assert.equal(p.source,'model');}
+main().catch(e=>{console.error(e.message);process.exitCode=1;});

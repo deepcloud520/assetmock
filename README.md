@@ -1,144 +1,69 @@
-# 人生模拟器 v0.2
+# Financial Associates · 人生模拟器
 
-首页现为长局版本：购车 **60 个月（5 年）**，购房 **360 个月（30 年）**。贷款期限与游戏期限独立；36个月车贷还清后，游戏继续。
+东流团队：靳博翔、钭君毅。
 
-全款、低首付、高首付三选二；平稳时期加速，关键事件停下来分别选择。结局可沿用相同经历，修改方案或一次历史选择重玩。
+资产、目标、收支、投资、保险五个管家围绕同一份财务底账协作；在「未来规划 → 情景推演」中，用两种付款方式经历同一段随机人生。购车 5 年，购房 30 年。剩余资金只计算现金与投资，房车不计入该指标，负债单列。
 
-- [v0.2 产品文档](人生模拟器-PRD-v0.2.md)
-- [v0.2 技术实施书](人生模拟器-技术实施书-v0.2.md)
-- [v0.2 验收记录](docs/验收记录-v0.2.md)
-- 旧版游戏在 `/legacy` 继续，保留原12／18个月规则；旧局不会自动扩展。
-- 新增真实模型验收命令：`npm run test:live:v2`，沿用现有密钥，不需添加新配置。
+## 本机启动
 
-以下保留原版启动与历史实现说明。
-
----
-
-# assetmock · 人生模拟器 v0.1
-
-东流团队，成员靳博翔、钭君毅。
-
-同一段随机人生，两种购车选择。选择虚构角色，确认全款与贷款方案，逐月揭晓18个月的收入、支出和事件，比较剩余资金变化。支持豆包搜索 Custom 查询购车贷款资料，也可使用本地示例。网页条件经用户确认后用于模拟，不代表本人可申请报价或风险预测。
-
-## 启动
-
-需要 **Node.js 22**（`.nvmrc`）。
+使用 Node.js 22。已有 `.env.local` 请保留，不要覆盖密钥。
 
 ```sh
-nvm use
 npm ci
-cp .env.example .env.local
-npm run dev
+# 首次使用时复制 .env.example 为 .env.local，并填写需要的密钥
+DATABASE_URL=file:./financial-associates.db npm run db:migrate
+npm run dev:all
 ```
 
-打开 http://127.0.0.1:3000 。若已经有 `.env.local`，不要覆盖它。
+打开 http://127.0.0.1:3000 。`dev:all` 同时运行 Web、撮合 worker、策略 worker；关闭时一并停止。只查看页面可用 `npm run dev`，实时模拟交易需要 worker。生产运行先 `npm run build`，再 `npm run start:all`。应用目前为本机单用户演示，不是公网多用户服务。
 
-在 `.env.local` 填写 `LLM_API_KEY` 可启用AIPing：
+- 产品库：`prisma/financial-associates.db`，由 `DATABASE_URL` 指定。
+- 游戏库：`data/life-simulator.sqlite`，由 `DATABASE_PATH` 指定。
+- `npm run db:migrate` 用于新库；已有库停服务后使用 `npm run db:migrate:safe`，先备份并核对业务记录。
 
-```dotenv
-LLM_BASE_URL=https://aiping.cn/api/v1
-LLM_MODEL=GLM-4.6
-LLM_API_KEY=你的密钥
-DATABASE_PATH=./data/life-simulator.sqlite
-COOKIE_SECURE=false
-```
+## AI 与搜索配置
 
-无密钥或服务不可用时，手工方案、预设资料、游戏计算与规则说明仍可使用；界面明确标注降级，不把模板当成AI结果。修改环境变量后重启服务。密钥和SQLite数据均不提交Git。
+在 `.env.local` 中填写 `LLM_API_KEY`、`LLM_MODEL`、`LLM_BASE_URL`；豆包搜索 Custom 使用 `DOUBAO_SEARCH_API_KEY`。不要把密钥提交到 Git。
 
-已适配GLM-4.6的关闭思考模式，以及GLM-5.3的强制思考/低推理强度模式。本次真实验收使用用户配置的GLM-5.3；模型名不要求改回默认值。
+管家优先读取 `OPENAI_*`，游戏优先读取 `LLM_*`；对应字段未配置时互相回退。视觉模型 `OPENAI_VISION_MODEL` 单独配置。AI/搜索故障时手动方案、游戏选择与结算仍能使用，规则说明明确标注来源。
 
-## 豆包搜索 Custom 配置
+## 演示
 
-在项目根目录 `.env.local` 添加以下**服务端**变量，保留已有 AIPing 配置：
+点击页面上方「进入独立演示空间」建立虚构底账：126万元现金（含6万元保护资金）、20万元基金、月收入3万元、生活费1.4万元（含4000元租金和500元保费），另有买车、买房目标及合成行情账户。「重置为新演示空间」创建新空间，不覆盖旧数据；可返回原空间。
 
-```dotenv
-DOUBAO_SEARCH_API_KEY=你的搜索专用Key
-```
+情景推演默认读取当前底账，先展示来源与排除原因，再由用户确认简化输入。游戏不解除真实资金限制，不把模拟事件记入财务底账。报告需点击保存，游戏进度自动保存。另可选择虚构角色直接体验。
 
-进入[搜索 API Key 管理](https://console.volcengine.com/search-infinity/api-key)，选择与已开通套餐对应的 Key。不是火山方舟模型 Key，也不是 AIPing 的 `LLM_API_KEY`。不需要额外填写模型 Endpoint ID、AK/SK 或更改模型地址。保存后重启 `npm run dev`；生产环境配置同名环境变量后重启服务。
+投资管家的合成行情在独立 REPLAY 账户中运行：手动委托后推进下一根 K 线撮合；AI 实验需确认股票池、策略及独立授权，然后点击执行当前时点分析。真实行情资料核验与实时账户保持原规则，合成演示不能当作真实策略收益。
 
-点击购车方案页的「读取资料，整理方案」会调用 Custom 搜索，再让现有 AIPing 模型整理目标与条件。页面显示来源、检索时间、原文片段；利率/费用没有明确依据时保持空白。选择「参考这份资料设定条件」，补齐并确认模拟假设后，点击「使用这些条件计算」，再确认开局。网页不会自动变成真实可申请报价。最低利率、平息费率与综合年化成本不会当成名义年利率自动填入。
+旧入口：`/game` 保留独立 v0.2，`/legacy` 保留早期游戏，`/simulation-archive` 只读查看当前浏览器来源中的原产品存档。不同端口的浏览器存档需在原产品查看或导出。
 
-Custom 使用固定官方端点 `https://open.feedcoopapi.com/search_api/web_search`，`Authorization: Bearer` 鉴权，每次最多5条，15秒超时，无自动重试。模型整理最多35秒；模型失败仍展示搜索来源。搜索只发送购车目标，不发送角色底账。Key 不使用 `NEXT_PUBLIC_` 前缀、不进入浏览器或日志。
-
-未配置搜索 Key 时继续读取示例资料；搜索失败时显示失败原因并保留示例选项。检索状态通过 `/api/profiles` 的 `searchEnabled` 布尔值体现，不返回 Key。源资料和已确认假设按匿名会话存入 SQLite，建局时冻结来源及条件。
+## 验证与备份
 
 ```sh
-npm run test:search
-```
-
-此命令会调用真实 Custom 搜索和已配置的模型，检查来源、资料整理、显式测试假设建局及首月结算。测试中的6%利率和零费用是明确设置的验收假设，**不是从网页提取的真实报价**。输出仅包含来源和状态，不输出密钥。
-
-接口依据：[Custom 官方文档](https://docs.volcengine.com/docs/Networkedsearch/Networkedsearch-2?lang=zh)。复用调研：[火山官方 MCP 搜索实现](https://github.com/volcengine/mcp-server/tree/main/server/mcp_server_askecho_search_infinity)。本项目直接使用 Node 原生 fetch 调用相同 HTTP 接口，无需新增 Python/MCP 服务。
-
-## 文档与数据
-
-- [产品需求文档](./人生模拟器-PRD-v0.1.md)
-- [技术实施书](./人生模拟器-技术实施书-v0.1.md)
-- [预设贷款资料](./content/示例贷款资料.md)
-- [验收记录](./docs/验收记录-v0.1.md)
-- 5个虚构角色：`src/domain/fixtures.ts`，GAME-U01—GAME-U05。旧U01仅作历史材料，不参与游戏。
-- [补充讨论](./人生模拟器补充讨论.md) 是历史讨论，以v0.1规格和实现为准。
-
-## 验证
-
-```sh
+npm test                    # 独立临时数据库、分组回归，不使用个人库
+npm run test:e2e             # 独立3100端口、临时演示数据库
 npm run typecheck
 npm run lint
-npm test
-npx playwright install chromium
-npm run test:e2e
-npm run build
-npm run test:live
+npm run test:live:v2         # 真实搜索、模型目标整理、事件解释与重玩建议
+npm run test:live:integrated # 新建独立演示空间，验证管家与底账方案整理
 ```
 
-`test:e2e`自动启动3100端口、使用独立`data/e2e.sqlite`、关闭真实模型与搜索调用。固定事件只在测试中注入数据库，HTTP不接受指定随机记录。
-
-`test:live`读取本地配置并调用真实模型，会消耗模型服务额度。只有输出`source: model`并返回有效工具链和解释才算真实AI验证通过；不输出密钥。
-
-## 部署
+页面内的数据管理备份针对产品库。完整保留游戏进度，请停止 Web 与两个 worker 后执行：
 
 ```sh
-npm run build
-npm start
+npm run backup:all -- --stopped
+# 恢复前仍须停止全部服务；命令先保存当前两库，再校验和恢复
+npm run backup:all -- --stopped --restore .local-data/bundles/<备份目录>
 ```
 
-生产服务默认绑定本机；若需对外监听，可使用 `npx next start --hostname 0.0.0.0` 并置于HTTPS反向代理后，设置`COOKIE_SECURE=true`。
+数据库恢复后的实时策略需要重新核对授权；完整备份含本机数据，不提交到代码仓库。backup:all 生成的离线备份属于手工备份，页面永久清除操作不会删除这些副本，需要自行清理。
 
-反向代理后的外部来源与服务内部协议不一致时，配置`APP_ORIGIN=https://你的站点域名`用于写请求来源校验。
+## 开发与文档
 
-单容器示例：
+功能分支 PR 目标为 `dev`，审核后集成；最终通过 `dev → main` 审核，不直接推送 main。
 
-```sh
-docker build -t eastflow-life:0.1 .
-docker run --rm -p 3000:3000 --env-file .env.local \
-  -e DATABASE_PATH=/app/data/life-simulator.sqlite \
-  -v eastflow-life-data:/app/data eastflow-life:0.1
-```
-
-镜像不包含`.env.local`；SQLite必须持久化，不支持多副本共享同一库或无持久磁盘的Serverless部署。容器构建是否实测见验收记录。
-
-## 游戏规则
-
-- 2026年11月至2028年4月；金额以分计算。两条路径显示剩余资金（现金＋投资账户），不计入车房价值、不扣负债；现金、投资账户、剩余负债、购车累计已支付金额分别列出。购车累计支付含已付车贷本息及一次性贷款费用，不含用车费。旧局刷新即可使用新展示口径。
-- 四类游戏事件独立抽取，无保底，医疗/失业按当前状态判断资格。
-- 规则0.1.1：失业触发月起连续3个月工资为0，第4个月以失业前工资的80%重新就业，此后持续按新工资结算；再次失业按当时工资计算。重新就业当月不重复失业，不新增随机抽取。
-- 工资与奖金分开显示：原定奖金可能在失业期间到账，不代表恢复工资。旧局及其相同经历重玩保留冻结规则，重新开局使用新规则。
-- 同一局两条路径共用抽取记录；重玩可沿用，刷新不会重抽。
-- 自动按跌后市值卖基金补足支付；仍不足则该路径停止，保留上个成功月份。
-- SQLite事务、月份版本和幂等键保证重复请求不重复扣账；匿名Cookie隔离会话。
-
-## 协作与赛事
-
-开发仓库：https://github.com/likelisa/assetmock 。
-
-主办方赛事仓库：https://git.laisengou.com/LaisenHorizon/14-EastFlow 。
-
-从`dev`创建功能分支，PR先到`dev`，审核后通过`dev → main`合并；不直接向main推送。赛事提交入口：https://hackathon.laisengou.com/#client=participant 。
-
-
-### 18个月周期更新（规则0.1.2）
-
-新局从2026年11月推进至2028年4月，共18个月。随机记录按本局周期生成，旧12个月存档及相同经历重玩保留原周期；重新开局使用18个月。事件概率不变，第13—18月继续抽卡与结算，奖金仍仅按原计划发放一次，12期债务还清后停止扣款。进度、曲线、月度解释与结局均读取本局周期。
-
-GAME-U01默认无事件局第18月：全款剩余资金255000.00元，贷款剩余资金318336.74元，剩余车贷73140.04元，购车累计支付136663.26元。第12月基准仍为中途检查点。
+- [整合 PRD](docs/整合-PRD-v0.3.md)
+- [整合技术说明](docs/整合-技术实施书-v0.3.md)
+- [本次验收记录](docs/整合-验收记录-v0.3.md)
+- [源代码导入清单](docs/import-financial-associate.json)
+- [原游戏 v0.2 规则](人生模拟器-PRD-v0.2.md)
