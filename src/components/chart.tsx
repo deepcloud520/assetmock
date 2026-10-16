@@ -3,7 +3,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import type { PublicRun } from '@/domain/types';
 
 export function WealthChart({ run }: { run: PublicRun }) {
-  return <div className="chart" role="img" aria-label="全款与贷款净资产随月份变化的折线图；数据可在下方月份记录查看">
+  return <div className="chart" role="img" aria-label="全款与贷款剩余资金随月份变化的折线图；数据可在下方月份记录查看">
     <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: 600, height: 290 }}>
       <LineChart data={run.timeline} margin={{ top: 18, right: 24, left: 0, bottom: 4 }}>
         <CartesianGrid stroke="#e6ecf3" vertical={false} />

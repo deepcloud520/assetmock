@@ -24,25 +24,41 @@ test('完整界面：角色、方案、确认、十二月、刷新和相同经�
   await expect(start).toBeDisabled();
   await page.getByRole('checkbox').check();
   await start.click();
-  await expect(page.getByTestId('cash-networth')).toHaveText('¥300,000.00');
+  await expect(page.getByTestId('cash-funds')).toHaveText('¥100,000.00');
+  await expect(page.getByTestId('cash-cash-balance')).toHaveText('¥60,000.00');
+  await expect(page.getByTestId('loan-cash-balance')).toHaveText('¥200,000.00');
+  await expect(page.getByTestId('loan-funds')).toHaveText('¥240,000.00');
+  await expect(page.getByTestId('cash-purchase-paid')).toHaveText('¥200,000.00');
+  await expect(page.getByTestId('loan-purchase-paid')).toHaveText('¥60,000.00');
+  await expect(page.getByText('固定资产', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('剩余资金走势', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('cash-investments-balance')).toHaveText('¥40,000.00');
+  await expect(page.getByTestId('loan-liabilities-balance')).toHaveText('¥140,000.00');
+  await page.screenshot({ path: 'test-results/asset-breakdown-desktop.png', fullPage: true });
   const id = await page.evaluate(() => localStorage.getItem('life-run'));
   setTape(id!);
   await page.getByRole('button', { name: /揭晓下个月/ }).click();
-  await expect(page.getByTestId('cash-networth')).toHaveText('¥305,500.00');
+  await expect(page.getByTestId('cash-funds')).toHaveText('¥107,500.00');
   await page.reload();
-  await expect(page.getByTestId('loan-networth')).toHaveText('¥304,800.00');
+  await expect(page.getByTestId('loan-funds')).toHaveText('¥243,240.93');
+  await expect(page.getByTestId('cash-cash-balance')).toHaveText('¥67,500.00');
+  await expect(page.getByTestId('loan-cash-balance')).toHaveText('¥203,240.93');
+  await expect(page.getByTestId('loan-liabilities-balance')).toHaveText('¥136,440.93');
+  await expect(page.getByTestId('loan-purchase-paid')).toHaveText('¥64,259.07');
   for (let i = 2; i <= 12; i++) {
     await page.getByRole('button', { name: /揭晓下个月/ }).click();
     await expect(page.getByText(`已揭晓第 ${i} / 12 个月`, { exact: true })).toBeVisible();
   }
-  await expect(page.getByTestId('cash-networth')).toHaveText('¥386,000.00');
-  await expect(page.getByTestId('loan-networth')).toHaveText('¥378,794.30');
+  await expect(page.getByTestId('cash-funds')).toHaveText('¥210,000.00');
+  await expect(page.getByTestId('loan-funds')).toHaveText('¥298,891.16');
+  await expect(page.getByTestId('loan-liabilities-balance')).toHaveText('¥96,096.86');
+  await expect(page.getByTestId('loan-purchase-paid')).toHaveText('¥111,108.84');
   await page.screenshot({ path: 'test-results/ending-desktop.png', fullPage: true });
   await page.getByRole('button', { name: '相同经历再试一次' }).click();
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: '用相同经历重新开始' }).click();
   await page.getByRole('button', { name: /揭晓下个月/ }).click();
-  await expect(page.getByTestId('loan-networth')).toHaveText('¥304,800.00');
+  await expect(page.getByTestId('loan-funds')).toHaveText('¥243,240.93');
   expect(errors).toEqual([]);
 });
 
@@ -74,13 +90,16 @@ test('手机端：随机事件、失败路径与键盘可操作', async ({ page 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/'); await page.getByRole('button', { name: '选择陈夏' }).click();
   await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的十二个月' }).click();
-  await expect(page.getByTestId('cash-networth')).toBeVisible();
+  await expect(page.getByTestId('cash-funds')).toBeVisible();
   const id = await page.evaluate(() => localStorage.getItem('life-run'));
   setTape(id!, { 1: { medical: 0, jobLoss: 0, marketDrop: 0 }, 4: { bonusDelay: 0 } });
   await page.getByRole('button', { name: /揭晓下个月/ }).click();
   await expect(page.getByText('一笔意外的医疗支出', { exact: true })).toBeVisible();
   await expect(page.getByText('第1月资金不足', { exact: false })).toBeVisible();
-  await expect(page.getByTestId('cash-networth')).toHaveText('¥230,000.00');
+  await expect(page.getByTestId('cash-funds')).toHaveText('¥30,000.00');
+  await expect(page.getByTestId('cash-cash-balance')).toHaveText('¥10,000.00');
+  await expect(page.getByTestId('cash-investments-balance')).toHaveText('¥20,000.00');
+  await expect(page.getByTestId('loan-investments-balance')).toHaveText('¥16,000.00');
   await page.screenshot({ path: 'test-results/medical-mobile.png', fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.getByRole('button', { name: /揭晓下个月/ }).click();
@@ -121,8 +140,8 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
   await expect(page.getByText('当前采用参考网页设定的模拟条件。', { exact: false })).toBeVisible();
   await page.getByRole('checkbox', { name: /我已核对参数/ }).check();
   await page.getByRole('button', { name: '开始我的十二个月' }).click();
-  await expect(page.getByTestId('loan-networth')).toHaveText('¥298,000.00');
-  await page.reload(); await expect(page.getByTestId('loan-networth')).toHaveText('¥298,000.00');
+  await expect(page.getByTestId('loan-funds')).toHaveText('¥238,000.00');
+  await page.reload(); await expect(page.getByTestId('loan-funds')).toHaveText('¥238,000.00');
   const id = await page.evaluate(() => localStorage.getItem('life-run'));
   const run = await (await page.request.get(`/api/runs/${id}`)).json();
   expect(run.plan.loan).toMatchObject({ annualRate: '0.048', fee: 200000, sourceUrl: source.url, sourceType: 'web_reference' });
@@ -135,7 +154,7 @@ test('联网资料：未知费用待确认、网页方案入账与恢复、跨�
 test('收入中断持续三个月，奖金独立到账，复职后工资永久降至80%', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: '选择林舟' }).click();
   await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '开始我的十二个月' }).click();
-  await expect(page.getByTestId('cash-networth')).toBeVisible();
+  await expect(page.getByTestId('cash-funds')).toBeVisible();
   const id = await page.evaluate(() => localStorage.getItem('life-run')); setTape(id!, { 3: { jobLoss: 0 } });
   const employment = page.getByRole('region', { name: '就业与收入' });
   for (let month = 1; month <= 7; month++) {
