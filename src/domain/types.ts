@@ -1,7 +1,8 @@
 export type PathKey = 'cash' | 'loan';
 export const pathKeys: PathKey[] = ['cash', 'loan'];
-export type EventKind = 'medical' | 'jobLoss' | 'bonusDelay' | 'marketDrop';
-export type Draws = Record<EventKind, number>;
+export type RandomEventKind = 'medical' | 'jobLoss' | 'bonusDelay' | 'marketDrop';
+export type EventKind = RandomEventKind | 'reemployment';
+export type Draws = Record<RandomEventKind, number>;
 export type EventTape = Draws[];
 
 export interface Profile {
@@ -36,6 +37,7 @@ export interface RuleSet {
   version: string; months: number; startMonth: string;
   probabilities: Draws; medicalCost: number; medicalDuration: number;
   unemploymentDuration: number; bonusDelayMonths: number; marketDropRate: string;
+  reemploymentSalaryRatio?: string; // Missing in frozen v0.1.0 runs: preserve their original salary rule.
 }
 export interface Setup { profile: Profile; purchase: PurchasePlan; loan: LoanPlan; rules: RuleSet }
 export interface PathState {
@@ -43,7 +45,7 @@ export interface PathState {
   netWorth: number; status: 'running' | 'completed' | 'failed'; lastSettledMonth: number;
   failure?: { month: number; shortfall: number; reason: string };
 }
-export interface LifeState { medicalUntil: number; unemployedUntil: number; bonusDueMonth: number; bonusPaid: boolean }
+export interface LifeState { medicalUntil: number; unemployedUntil: number; bonusDueMonth: number; bonusPaid: boolean; currentSalary?: number }
 export interface DualPathState { month: number; life: LifeState; paths: Record<PathKey, PathState> }
 export interface Ledger {
   salary: number; bonus: number; living: number; carExpense: number; medical: number;
@@ -75,7 +77,9 @@ export interface PublicRun {
   input: SetupInput; plan: { purchase: PurchasePlan; loan: LoanPlan; confirmedAt: string };
   paths: Record<PathKey, PublicPath>;
   timeline: { month: number; cash: number | null; loan: number | null }[];
-  months: { month: number; events: GameEvent[]; treating: boolean; unemployed: boolean; facts: Fact[] }[];
+  months: { month: number; events: GameEvent[]; treating: boolean; unemployed: boolean; facts: Fact[];
+    employment: { salary: number | null; bonus: number | null; monthsRemaining: number; resumed: boolean } }[];
   summary: { comparable: boolean; difference: number | null; facts: Fact[] };
   ruleDescription: string;
+  legacyEmploymentRule: boolean;
 }

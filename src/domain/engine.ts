@@ -1,5 +1,5 @@
 import type { Draws, DualPathState, GameEvent, Ledger, MonthResult, PathResult, PathState, Setup } from './types';
-import { multiply, repayment } from './money';
+import { money, multiply, repayment } from './money';
 
 export const netWorth = (p: Pick<PathState, 'cash' | 'fund' | 'car' | 'debt' | 'loanBalance'>) => p.cash + p.fund + p.car - p.debt - p.loanBalance;
 export function assertState(p: PathState): void {
@@ -13,7 +13,8 @@ export function createInitialState(setup: Setup): DualPathState {
   const financed: PathState = { ...base, cash: p.cash - loan.downPayment - loan.fee, loanBalance: loan.principal, netWorth: 0 };
   cash.netWorth = netWorth(cash); financed.netWorth = netWorth(financed);
   assertState(cash); assertState(financed);
-  return { month: 0, life: { medicalUntil: 0, unemployedUntil: 0, bonusDueMonth: p.bonusMonth, bonusPaid: false }, paths: { cash, loan: financed } };
+  return { month: 0, life: { medicalUntil: 0, unemployedUntil: 0, bonusDueMonth: p.bonusMonth, bonusPaid: false,
+    ...(setup.rules.reemploymentSalaryRatio !== undefined ? { currentSalary: p.salary } : {}) }, paths: { cash, loan: financed } };
 }
 
 function eventsForMonth(state: DualPathState, draws: Draws, setup: Setup) {
@@ -21,13 +22,20 @@ function eventsForMonth(state: DualPathState, draws: Draws, setup: Setup) {
   const life = { ...state.life };
   const { rules: r, profile: p } = setup;
   const events: GameEvent[] = [];
+  const reemployed = r.reemploymentSalaryRatio !== undefined && life.unemployedUntil > 0 && month === life.unemployedUntil;
+  if (reemployed) {
+    const previousSalary = life.currentSalary ?? p.salary;
+    life.currentSalary = multiply(previousSalary, r.reemploymentSalaryRatio!);
+    events.push({ kind: 'reemployment', title: '找到一份新工作',
+      description: `经过${r.unemploymentDuration}个月停薪，本月重新就业。月工资由失业前的${money(previousSalary)}元调整为${money(life.currentSalary)}元，此后按新工资结算。本月不再触发失业；这是本局游戏设定。` });
+  }
   if (month >= life.medicalUntil && draws.medical < r.probabilities.medical) {
     life.medicalUntil = month + r.medicalDuration;
     events.push({ kind: 'medical', title: '一笔意外的医疗支出', description: '本月产生大额自付费用，进入治疗状态。治疗期间不会重复抽取同类事件。' });
   }
-  if (month >= life.unemployedUntil && draws.jobLoss < r.probabilities.jobLoss) {
+  if (!reemployed && month >= life.unemployedUntil && draws.jobLoss < r.probabilities.jobLoss) {
     life.unemployedUntil = month + r.unemploymentDuration;
-    events.push({ kind: 'jobLoss', title: '收入暂时中断', description: '工作收入暂停，日常支出和还款仍然继续。恢复时间由本局规则确定。' });
+    events.push({ kind: 'jobLoss', title: '收入暂时中断', description: `从本月起连续${r.unemploymentDuration}个月工资为0，期间持续求职，日常支出和还款照常。按本局规则第${life.unemployedUntil}月重新就业；原定奖金单独结算，不代表恢复工资。` });
   }
   if (p.bonus > 0 && !life.bonusPaid && month === p.bonusMonth && draws.bonusDelay < r.probabilities.bonusDelay) {
     life.bonusDueMonth = p.bonusMonth + r.bonusDelayMonths;
@@ -72,7 +80,7 @@ export function advanceMonth(state: DualPathState, monthlyDraws: Draws, setup: S
   if (state.month >= setup.rules.months || Object.values(state.paths).every(p => p.status !== 'running')) throw new Error('本局已经结束');
   if (Object.values(monthlyDraws).length !== 4 || Object.values(monthlyDraws).some(v => !Number.isInteger(v) || v < 0 || v >= 1000000)) throw new Error('抽取记录无效');
   const { month, life, events, bonus } = eventsForMonth(state, monthlyDraws, setup);
-  const income = { salary: month < life.unemployedUntil ? 0 : setup.profile.salary, bonus };
+  const income = { salary: month < life.unemployedUntil ? 0 : life.currentSalary ?? setup.profile.salary, bonus };
   const medical = events.some(e => e.kind === 'medical');
   const marketDrop = events.some(e => e.kind === 'marketDrop');
   return { month, life, events, paths: {
