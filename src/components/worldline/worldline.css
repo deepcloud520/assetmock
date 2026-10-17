@@ -213,6 +213,8 @@
   .wl-sample figcaption i { width: 0.9rem; height: 0.2rem; border-radius: 999px; }
   .wl-charts { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
   .wl-panel { display: flex; flex-direction: column; gap: 0.35rem; }
+  .wl-dot { display: inline-block; width: 0.55rem; height: 0.55rem; border-radius: 999px; margin-right: 0.35rem; vertical-align: middle; }
+
   .wl-panel figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; font-size: 0.8rem; color: #60758c; }
   .wl-panel figcaption strong { color: #183653; font-size: 0.88rem; }
   .wl-panel svg { width: 100%; height: auto; }

@@ -62,8 +62,16 @@ export function yuan(minor: number): string {
   return `${(minor / 100).toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
 }
 
+/** 与旧版「平行人生」时间线同一套色板：A 蓝实线、B 橙虚线 */
+export const STRATEGY_COLORS = ['#267DFF', '#FF5D00'] as const;
+
 export function strategyColor(strategy: RenderStrategy, index: number): string {
-  return index === 0 ? '#23669d' : '#c2571a';
+  return STRATEGY_COLORS[index] ?? STRATEGY_COLORS[0];
+}
+
+/** B 用虚线，和旧版一致：两条线在同一张图上一眼分得开 */
+export function strategyDash(index: number): string | undefined {
+  return index === 0 ? undefined : '6 4';
 }
 
 export const bandColor: Record<string, string> = { ok: '#1f9d6b', tight: '#c98a00', bad: '#d2453f' };
