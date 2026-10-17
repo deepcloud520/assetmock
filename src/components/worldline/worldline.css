@@ -208,7 +208,8 @@
   .wl-interpret-headline { color: #1d3c58; font-size: 0.9rem; }
   .wl-interpret-sections { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; padding-left: 1.1rem; color: #4a5f75; font-size: 0.82rem; }
   .wl-interpret-sections b { color: #1d3c58; margin-right: 0.35rem; }
-  .wl-interpret-sections span { color: #7b8fa4; }
+  .wl-interpret-sections span { color: #4a5f75; }
+  .wl-interpret-evidence { display: block; margin-top: 0.15rem; color: #93a6b8; font-size: 0.7rem; }
   .wl-legend-line { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; margin-top: 0.3rem; color: #60758c; font-size: 0.72rem; }
   .wl-legend-line span { display: inline-flex; align-items: center; gap: 0.3rem; }
   .wl-legend-line i { width: 0.55rem; height: 0.55rem; border-radius: 2px; }

@@ -77,6 +77,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
   const [cursor, setCursor] = useState(1);
   const [blind, setBlind] = useState(false);
   const [reload, setReload] = useState(0);
+  /** 上一次推演的完整入参：AI 解读用同一份重算，保证数字和页面一致 */
+  const [lastPayload, setLastPayload] = useState<Record<string, unknown>>();
   /** 三段式：① 输入 → ② 一条世界线 → ③ 剩下的世界线 */
   const [stage, setStage] = useState<'form' | 'sample' | 'all'>('form');
   /** 单一世界线露到第几个月：一次一步 */
@@ -138,7 +140,7 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
     setBusy(true);
     setError('');
     try {
-      const next = await request<RenderModel>('runs', {
+      const payload = {
         goalId: draft.goal,
         target,
         sourceSignature: draft.sourceSignature,
@@ -152,7 +154,9 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
         k: settings.k,
         responsePolicy: settings.responsePolicy,
         careerPolicy: 'DECLINE',
-      });
+      };
+      const next = await request<RenderModel>('runs', payload);
+      setLastPayload(payload);
       setModel(next);
       setCursor(1);
       setStage('sample');
@@ -332,7 +336,7 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
       <div className="wl-cards-head"><h3>抽几张看看（最多 6 张，优先 劣 / 次劣 / 次优）</h3></div>
       <CandidateCards candidates={model.candidates} blind={blind} />
 
-      <InterpretationPanel workspaceId={workspaceId} model={model} />
+      <InterpretationPanel workspaceId={workspaceId} payload={lastPayload} />
 
       <div className="wl-charts">
         {model.strategies.map((strategy, index) => <StrategyPanel key={strategy.id} model={model} strategy={strategy} index={index} domain={domain} cursor={cursor} />)}

@@ -4,7 +4,7 @@ import { ServiceError } from '@/server/store';
 import { simulationEndpoint } from '@/server/simulations/access';
 import { describeIssues } from '@/server/worldlines/input';
 import { runWorldlines, worldlineCards, worldlineOpening } from '@/server/worldlines/service';
-import { interpretInputSchema, reservedInterpretation } from '@/server/worldlines/interpret';
+import { draftInterpretation } from '@/server/worldlines/interpret';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,10 +37,10 @@ export const POST = simulationEndpoint(async (request, _owner, context) => {
     const { model } = await guarded(() => runWorldlines(context.workspaceId, payload));
     return model;
   }
-  // AI 解读：形状先定死，模型后接（当前固定返回 RESERVED）
+  // AI 解读：用同一份入参重算一次，再出规则草稿（模型接上后替换正文）
   if (parts[0] === 'interpret') {
-    const input = interpretInputSchema.parse(payload);
-    return reservedInterpretation(input);
+    const { model } = await guarded(() => runWorldlines(context.workspaceId, payload));
+    return draftInterpretation(model);
   }
   throw new ServiceError(404, '接口不存在');
 });
