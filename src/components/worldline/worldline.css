@@ -200,6 +200,17 @@
   .wl-card-row em { margin-left: auto; color: #6a819a; font-style: normal; font-variant-numeric: tabular-nums; }
   .wl-card-foot { border-top: 1px solid #e7eef6; padding-top: 0.3rem; color: #8296a8; font-size: 0.68rem; }
 
+  .wl-sample { display: flex; flex-direction: column; gap: 0.4rem; }
+  .wl-sample svg { width: 100%; height: auto; }
+  .wl-sample .wl-grid { stroke: #e7eef6; stroke-width: 1; }
+  .wl-sample .wl-zero { stroke: #b8c9da; stroke-width: 1; stroke-dasharray: 3 3; }
+  .wl-sample .wl-year { stroke: #eef3f8; stroke-width: 1; }
+  .wl-sample .wl-event-line { stroke: #f0d9b0; stroke-width: 1; }
+  .wl-sample .wl-event-dot { fill: #c98a00; }
+  .wl-sample .wl-axis { fill: #8296a8; font-size: 9px; }
+  .wl-sample figcaption { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; color: #5b7086; font-size: 0.8rem; }
+  .wl-sample figcaption span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .wl-sample figcaption i { width: 0.9rem; height: 0.2rem; border-radius: 999px; }
   .wl-charts { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
   .wl-panel { display: flex; flex-direction: column; gap: 0.35rem; }
   .wl-panel figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; font-size: 0.8rem; color: #60758c; }

@@ -9,16 +9,17 @@
 import type { StepDriver } from './driver';
 import { runLine } from './kernel';
 import { validateParams } from './params';
-import { signatureOf } from './premise';
+import { premiseOf, signatureOf } from './premise';
 import { lineSeed, mulberry32, pickWeighted } from './random';
-import { worstBand } from './scalars';
-import { selectCandidates } from './select';
+import { median, worstBand } from './scalars';
+import { assignTiers, selectCandidates } from './select';
 import {
   claimText, countBands, evidenceIdsOf, provenanceEntries, quantilesByMonth, strategyStats,
 } from './report';
 import type {
-  EngineKnobs, LineProfile, SimulateInput, Worldline, WorldlineParams, WorldlineRunResult,
+  EngineKnobs, LineProfile, SampleLine, SimulateInput, Worldline, WorldlineParams, WorldlineRunResult,
 } from './types';
+import { tierLabels } from './types';
 
 export const MAX_N = 2000;
 
@@ -93,6 +94,25 @@ export function simulateWorldlines<TState, TDraws, TSetup>(
     });
   }
 
+  // 先给人看的那一条：最接近整体的中位水平，既不挑最好也不挑最坏
+  const center = median(lines.map(line => line.worstUsable));
+  const sampleLine = [...lines].sort((left, right) => Math.abs(left.worstUsable - center) - Math.abs(right.worstUsable - center))[0];
+  const sampleTier = assignTiers(lines).get(sampleLine.id) ?? 'middle';
+  const sample: SampleLine = {
+    id: sampleLine.id,
+    tier: sampleTier,
+    label: tierLabels[sampleTier],
+    premise: premiseOf(sampleLine),
+    events: sampleLine.events,
+    series: Object.fromEntries(Object.entries(sampleLine.strategies).map(([id, strategy]) => [id, strategy.usable])) as SampleLine['series'],
+    byStrategy: Object.fromEntries(Object.entries(sampleLine.strategies).map(([id, strategy]) => [id, {
+      label: strategy.label,
+      floorMinor: strategy.floorMinor,
+      minUsable: strategy.minUsable,
+      firstShortfall: strategy.firstShortfall,
+      band: strategy.band,
+    }])) as SampleLine['byStrategy'],
+  };
   const selected = selectCandidates(lines, { k, limit: input.limitCandidates ?? 6 });
   const bands = countBands(lines);
   const failedAnyCount = lines.filter(line => specs.some(spec => line.strategies[spec.id].status === 'failed')).length;
@@ -118,6 +138,7 @@ export function simulateWorldlines<TState, TDraws, TSetup>(
     bands,
     byStrategy: specs.map(spec => strategyStats(lines, spec.id)),
     candidates: selected.candidates,
+    sample,
     minUsables,
     quantilesByMonth: monthly,
     shortfallCount,

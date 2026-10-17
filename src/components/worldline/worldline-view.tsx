@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RenderModel } from '@/domain/worldline/render-model';
 import { CandidateCards } from './cards';
+import { SampleLineChart } from './sample-line';
 import { StrategyPanel } from './chart';
 import { bandColor, buildYDomain, wan, yuan } from './geometry';
 import { normalizeLiving } from '@/domain/worldline/normalize';
@@ -75,6 +76,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
   const [cursor, setCursor] = useState(1);
   const [blind, setBlind] = useState(false);
   const [reload, setReload] = useState(0);
+  /** 三段式：① 输入 → ② 一条世界线 → ③ 剩下的世界线 */
+  const [stage, setStage] = useState<'form' | 'sample' | 'all'>('form');
 
   const request = useCallback(async <T,>(path: string, data?: unknown): Promise<T> => {
     let response: Response;
@@ -149,6 +152,7 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
       });
       setModel(next);
       setCursor(1);
+      setStage('sample');
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : '推演失败');
     } finally {
@@ -175,7 +179,7 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
 
     {error && <p className="wl-error" role="alert">{error}</p>}
 
-    {!model && <section className="wl-panel-card">
+    {stage === 'form' && <section className="wl-panel-card">
       <header>
         <p className="wl-kicker">第一步 · 确认输入并开跑</p>
         <h2>用这份底账，跑几百段假设的人生</h2>
@@ -271,9 +275,29 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
       </footer>
     </section>}
 
-    {model && <section className="wl-panel-card">
+    {stage === 'sample' && model && <section className="wl-panel-card">
       <header>
-        <p className="wl-kicker">结果 · {model.meta.n} 条 × {model.meta.months} 月</p>
+        <p className="wl-kicker">第二步 · 先看一条世界线</p>
+        <h2>这一段人生里，两种策略分别走到哪里</h2>
+        <p>
+          {model.sample.id} · {model.sample.label} · {model.sample.premise}
+          {' '}— 这是最接近整体中位水平的一条，不是最极端的。
+        </p>
+      </header>
+
+      <SampleLineChart model={model} />
+
+      <footer className="wl-actions">
+        <button type="button" className="button-secondary" onClick={() => setStage('form')}>改输入</button>
+        <button type="button" className="button-primary" onClick={() => setStage('all')}>
+          看剩下的 {model.meta.n - 1} 条世界线
+        </button>
+      </footer>
+    </section>}
+
+    {stage === 'all' && model && <section className="wl-panel-card">
+      <header>
+        <p className="wl-kicker">第三步 · 剩下的世界线 · {model.meta.n} 条 × {model.meta.months} 月</p>
         <h2>{model.meta.claim}</h2>
       </header>
 
@@ -325,7 +349,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
       </p>
 
       <footer className="wl-actions">
-        <button type="button" className="button-secondary" onClick={() => { setModel(undefined); setConfirmed(false); }}>改输入</button>
+        <button type="button" className="button-secondary" onClick={() => setStage('sample')}>回到那一条</button>
+        <button type="button" className="button-secondary" onClick={() => { setModel(undefined); setConfirmed(false); setStage('form'); }}>改输入</button>
         <button type="button" className="button-primary" disabled={busy} onClick={() => void run()}>{busy ? '正在重算…' : '换一批重算'}</button>
       </footer>
     </section>}

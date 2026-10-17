@@ -23,7 +23,15 @@ const model: RenderModel = {
     b: Array.from({ length: 12 }, (_, i) => ({ p5: 2000000 + i * 1000, p50: 9000000 + i * 1000, p90: 9500000 + i * 1000 })),
   },
   minUsables: { a: [-100000, 8000000, 8500000, 9000000], b: [2000000, 3000000, 9000000, 9500000] },
-  candidates: [
+  sample: {
+    id: 'W-001', tier: 'middle', label: '中', premise: '没有发生冲击事件',
+    events: [{ month: 5, kind: 'marketDrop', title: '投资下跌' }],
+    series: { a: Array.from({ length: 12 }, () => 8500000), b: Array.from({ length: 12 }, () => 9200000) },
+    byStrategy: {
+      a: { label: '全款', floorMinor: 3000000, minUsable: 8500000, band: 'ok', firstShortfall: null },
+      b: { label: '低首付', floorMinor: 4500000, minUsable: 9200000, band: 'ok', firstShortfall: null },
+    },
+  },  candidates: [
     {
       id: 'W-000', band: 'bad', tier: 'worst', label: '劣', premise: '第 3 月失业；一次大病自付（高档）', profileLabel: '一次大病自付（高档）',
       byStrategy: {

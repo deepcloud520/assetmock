@@ -44,6 +44,22 @@ export interface RenderCandidate {
   series: Record<StrategyId, number[]>;
 }
 
+
+export interface RenderSample {
+  id: string;
+  tier: string;
+  label: string;
+  premise: string;
+  events: Array<{ month: number; kind: string; title: string }>;
+  series: Record<StrategyId, number[]>;
+  byStrategy: Record<StrategyId, {
+    label: string;
+    floorMinor: number;
+    minUsable: number;
+    band: Band;
+    firstShortfall: { month: number; amountMinor: number } | null;
+  }>;
+}
 export interface RenderModel {
   meta: {
     seed: number;
@@ -67,6 +83,8 @@ export interface RenderModel {
   /** 每策略每条线的最小可用资金：画右侧边际分布（1 个数字 1 条线） */
   minUsables: Record<StrategyId, number[]>;
   candidates: RenderCandidate[];
+  /** 第二条界面用的那一条代表世界线 */
+  sample: RenderSample;
   /** 给"这些假设从哪来"的一行一段，basis 决定措辞 */
   provenance: Array<{ param: string; label: string; basis: string; url?: string }>;
 }
@@ -102,6 +120,15 @@ export function toRenderModel(result: WorldlineRunResult): RenderModel {
     bands: result.bands,
     quantilesByMonth: result.quantilesByMonth,
     minUsables: result.minUsables,
+    sample: {
+      id: result.sample.id,
+      tier: result.sample.tier,
+      label: result.sample.label,
+      premise: result.sample.premise,
+      events: result.sample.events,
+      series: result.sample.series,
+      byStrategy: result.sample.byStrategy,
+    },
     candidates: result.candidates.map(candidate => ({
       id: candidate.id,
       band: candidate.band,

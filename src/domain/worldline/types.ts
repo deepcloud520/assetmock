@@ -236,6 +236,23 @@ export interface Candidate {
 
 export interface QuantilePoint { p5: Minor; p50: Minor; p90: Minor }
 
+
+/** 第二条界面用的"一条世界线"：两条策略走同一段经历，逐月对比 */
+export interface SampleLine {
+  id: string;
+  tier: Tier;
+  label: string;
+  premise: string;
+  events: LineEvent[];
+  series: Record<StrategyId, Minor[]>;
+  byStrategy: Record<StrategyId, {
+    label: string;
+    floorMinor: Minor;
+    minUsable: Minor;
+    firstShortfall: { month: number; amountMinor: Minor } | null;
+    band: Band;
+  }>;
+}
 export interface WorldlineRunResult {
   seed: number;
   n: number;
@@ -258,6 +275,8 @@ export interface WorldlineRunResult {
   bands: Record<Band, number>;
   byStrategy: StrategyStats[];
   candidates: Candidate[];
+  /** 先给人看的那一条代表世界线（两条策略逐月对比） */
+  sample: SampleLine;
   /** 每策略每条线的最小可用资金：右侧边际分布只需这一个数 */
   minUsables: Record<StrategyId, Minor[]>;
   /** 逐月 P5/P50/P90：折线带的传输口径 */
