@@ -28,7 +28,13 @@
     "postinstall": "prisma generate",
     "start:all": "node scripts/paper-dev.mjs --production",
     "backup:all": "node scripts/backup-all.mjs",
-    "test:live:integrated": "tsx scripts/live-integrated.ts"
+    "test:live:integrated": "tsx scripts/live-integrated.ts",
+    "predev": "node scripts/check-build-deps.mjs",
+    "prebuild": "node scripts/check-build-deps.mjs",
+    "predev:all": "node scripts/check-build-deps.mjs",
+    "predev:paper": "node scripts/check-build-deps.mjs",
+    "doctor": "node scripts/check-build-deps.mjs",
+    "repair:install": "npm ci --include=dev && node scripts/clean-next.mjs && npm run doctor"
   },
   "dependencies": {
     "@prisma/client": "6.19.0",
@@ -42,10 +48,11 @@
     "ai": "6.0.308",
     "better-sqlite3": "12.11.1",
     "decimal.js": "10.6.0",
-    "recharts": "3.8.0"
+    "recharts": "3.8.0",
+    "@tailwindcss/postcss": "4.1.14",
+    "tailwindcss": "4.1.14"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.1.14",
     "@types/node": "22.19.15",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -53,7 +60,6 @@
     "eslint-config-next": "16.4.2",
     "eslint-plugin-sonarjs": "3.0.7",
     "prisma": "6.19.0",
-    "tailwindcss": "4.1.14",
     "typescript": "5.9.3",
     "vitest": "4.0.18",
     "@playwright/test": "1.58.2",
