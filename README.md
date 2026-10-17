@@ -9,13 +9,32 @@
 使用 Node.js 22。已有 `.env.local` 请保留，不要覆盖密钥。
 
 ```sh
-npm ci
+npm ci --include=dev
 # 首次使用时复制 .env.example 为 .env.local，并填写需要的密钥
 DATABASE_URL=file:./financial-associates.db npm run db:migrate
 npm run dev:all
 ```
 
 打开 http://127.0.0.1:3000 。`dev:all` 同时运行 Web、撮合 worker、策略 worker；关闭时一并停止。只查看页面可用 `npm run dev`，实时模拟交易需要 worker。生产运行先 `npm run build`，再 `npm run start:all`。应用目前为本机单用户演示，不是公网多用户服务。
+
+### 安装与 CSS 构建报错
+
+克隆或拉取新增依赖后，先运行 `npm ci --include=dev`，安装成功再启动。开发与源码构建需要完整依赖；不要用 `--omit=dev` 代替开发安装，也不要从别的操作系统复制 `node_modules`。
+
+如果看到 `Cannot find module '@tailwindcss/postcss'`，表示 PostCSS 插件未安装或无法加载，字体文件只是触发 CSS 编译的入口。先停止正在运行的开发服务，然后在项目根目录执行（Windows PowerShell、macOS 均可）：
+
+```sh
+npm run repair:install
+npm run dev
+```
+
+修复命令按锁文件完整重装依赖、清理 `.next` 并检查构建依赖，不删除 `.env.local` 和数据库。安装失败时先处理 npm 的安装错误，不要继续启动。`npm run doctor` 可单独检查 Node.js 与构建依赖。尚未取得修复分支时，也可在停止服务后手动运行：
+
+```sh
+npm ci --include=dev
+node -e "require('node:fs').rmSync('.next', { recursive: true, force: true })"
+npm run dev
+```
 
 - 产品库：`prisma/financial-associates.db`，由 `DATABASE_URL` 指定。
 - 游戏库：`data/life-simulator.sqlite`，由 `DATABASE_PATH` 指定。
