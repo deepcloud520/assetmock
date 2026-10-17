@@ -12,7 +12,7 @@ export type HubTab = "plans" | "scenarios" | "car";
 
 const tabs: Array<{ id: HubTab; label: string; icon: typeof Target }> = [
   { id: "plans", label: "方案比较", icon: Target },
-  { id: "scenarios", label: "情景推演", icon: Activity },
+  { id: "scenarios", label: "未来可能性推演", icon: Activity },
 ];
 
 export function PlanningHub({
@@ -34,8 +34,8 @@ export function PlanningHub({
 }) {
   const [tab, setTab] = useState<HubTab>(initialTab);
   return <div className="planning-page">
-    <header className="planning-page-header"><div><p className="planning-page-kicker">未来规划</p><h1>为重要目标，选一条清晰的路</h1><p>比较方案、安排近期行动，并检验变化带来的影响。</p></div>{activeGoal && <div className="planning-goal-context"><span>当前目标</span><strong>{activeGoal.name}</strong></div>}</header>
-    <nav className="hub-tabs" aria-label="未来规划分区">
+    <header className="planning-page-header"><div><p className="planning-page-kicker">{tab === "scenarios" ? "未来可能性推演" : "目标规划"}</p><h1>为重要目标，选一条清晰的路</h1><p>比较方案、安排近期行动，并检验变化带来的影响。</p></div>{activeGoal && <div className="planning-goal-context"><span>当前目标</span><strong>{activeGoal.name}</strong></div>}</header>
+    <nav className="hub-tabs" aria-label="目标规划分区">
       {workspaceId && <button type="button" role="tab" aria-selected={tab === "car"} className={tab === "car" ? "active" : ""} onClick={() => setTab("car")}><Target size={16} />买车决策</button>}
       {tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}><Icon size={16} />{label}</button>)}
     </nav>

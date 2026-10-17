@@ -202,15 +202,15 @@ export function FinancialWorkspace() {
   const [runningTask, setRunningTask] = useState<"WEALTH_DIAGNOSIS" | "FINANCIAL_PLANNING" | "SCENARIO_ANALYSIS" | "ACTION_PLANNING" | "FUTURE_PLANNING_ACTION_REPORT" | null>(null);
   const [promptSidebarOpen, setPromptSidebarOpen] = useState(false);
 
-  const sceneViews: Record<AgentKey, View[]> = { WEALTH: ["agent", "diagnosis", "planning"], GOAL: ["execution"], CASHFLOW: ["bookkeeping", "cashflow-manager"], INVESTMENT: ["investment-assistant"], INSURANCE: ["insurance-manager"] };
+  const sceneViews: Record<AgentKey, View[]> = { WEALTH: ["agent", "diagnosis"], GOAL: ["execution"], CASHFLOW: ["bookkeeping", "cashflow-manager"], INVESTMENT: ["investment-assistant"], INSURANCE: ["insurance-manager"] };
   const lastSceneView = useRef<Partial<Record<AgentKey, View>>>({});
-  const sceneFor = (value: View): AgentKey | null => (Object.keys(sceneViews) as AgentKey[]).find(key => sceneViews[key].includes(value)) ?? null;
+  const sceneFor = (value: View): AgentKey | null => value === "planning" ? "GOAL" : (Object.keys(sceneViews) as AgentKey[]).find(key => sceneViews[key].includes(value)) ?? null;
   const setView = useCallback((nextView: View, planningTab: "plans" | "scenarios" = "plans") => {
     setPromptSidebarOpen(false);
     setPlanningEntryTab(planningTab);
     setCurrentView(nextView);
-    const scene = nextView === "execution" ? "GOAL" : ["agent", "diagnosis", "planning"].includes(nextView) ? "WEALTH" : ["bookkeeping", "cashflow-manager"].includes(nextView) ? "CASHFLOW" : nextView === "investment-assistant" ? "INVESTMENT" : nextView === "insurance-manager" ? "INSURANCE" : null;
-    if (scene) lastSceneView.current[scene] = nextView;
+    const scene = ["execution", "planning"].includes(nextView) ? "GOAL" : ["agent", "diagnosis"].includes(nextView) ? "WEALTH" : ["bookkeeping", "cashflow-manager"].includes(nextView) ? "CASHFLOW" : nextView === "investment-assistant" ? "INVESTMENT" : nextView === "insurance-manager" ? "INSURANCE" : null;
+    if (scene) lastSceneView.current[scene] = nextView === "planning" ? "execution" : nextView;
     const url = new URL(window.location.href); url.searchParams.set("view", nextView);
     if (nextView === "planning" && planningTab === "scenarios") url.searchParams.set("planningTab", "scenarios");
     else url.searchParams.delete("planningTab");
@@ -470,7 +470,7 @@ export function FinancialWorkspace() {
     { id: "insurance-manager", scene: "INSURANCE", label: "保险管家", icon: ShieldCheck },
   ];
   const currentNavigation = navigation.find(item => item.scene === currentScene);
-  const tabLabels: Partial<Record<View, string>> = { agent: "财富总览", diagnosis: "财富诊断", planning: "未来规划", bookkeeping: "记账", "cashflow-manager": "复盘" };
+  const tabLabels: Partial<Record<View, string>> = { agent: "财富总览", diagnosis: "财富诊断", bookkeeping: "记账", "cashflow-manager": "复盘" };
 
   const selectedPlan = agentResults.planning?.plans.find((item) => item.key === agentResults.planning?.selectedPlanKey) ?? null;
   const selectedGoal = selectedPlan ? portfolio.goals.find((goal) => goal.id === agentResults.planning?.goalId) ?? null : null;
@@ -545,9 +545,9 @@ export function FinancialWorkspace() {
           {view === "agent" && <ManagerSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpen={(manager) => setView(manager === "CASHFLOW" ? "cashflow-manager" : manager === "INSURANCE" ? "insurance-manager" : "investment-assistant")} onCar={() => setView("execution")} onExecution={() => setView("execution")} />}
           {["cashflow-manager", "insurance-manager", "investment-assistant"].includes(view) && <SpecialistManagerPage key={view} workspaceId={workspaceId} manager={view === "cashflow-manager" ? "CASHFLOW" : view === "insurance-manager" ? "INSURANCE" : "INVESTMENT"} onDataChange={() => loadPortfolio(workspaceId)} onBookkeeping={() => setView("bookkeeping")} onExecution={() => setView("execution")} onCar={() => startCarPlanning()} />}
           {view === "execution" && <>
-            <section className="goal-simulation-entry" aria-label="情景推演">
+            <section className="goal-simulation-entry" aria-label="未来可能性推演">
               <div><h2>先预演，再做决定</h2><p>买车看 5 年，买房看 30 年。比较两种付款方式，体验人生事件，看看剩余资金如何变化。</p><small>{planningGoal ? `当前规划目标：${planningGoal.name}` : "使用当前底账确认开局，也可以选择虚构角色体验。"}</small></div>
-              <button type="button" className="button-primary" onClick={openSimulation}><Activity size={18} aria-hidden="true" />情景推演入口</button>
+              <button type="button" className="button-primary" onClick={openSimulation}><Activity size={18} aria-hidden="true" />未来可能性推演</button>
             </section>
             <div className="goal-manager-layout"><AgentConversation key={`${workspaceId}:GOAL`} workspaceId={workspaceId} agentKey="GOAL" goals={portfolio.goals} onDataChange={() => loadPortfolio(workspaceId)} onOpenPlanning={() => setView("planning")} embedded /><div>{<ManagerSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpen={() => {}} onCar={() => startCarPlanning()} onExecution={() => {}} remindersOnly /> }<ActionsView result={executionResults.actions} loading={saving} onStatus={updateActionStatus} />
           <GoalDecisionSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpenPlanning={() => setView("planning")} /></div></div></>}

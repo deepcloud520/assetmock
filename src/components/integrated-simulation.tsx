@@ -19,7 +19,7 @@ export function IntegratedSimulation({workspaceId,goalId}:{workspaceId:string;go
  }catch(e){setError(e instanceof Error?e.message:'确认失败');}finally{setBusy(false);}}
  function exit(){setPlaying(false);setOpening(undefined);setSelected(undefined);setGeneration(x=>x+1);setConfirmed(false);}
  if(playing)return <div className="life-game"><LifeSimulator key={opening?.id??selected??'demo'} workspaceId={workspaceId} opening={opening} initialRunId={selected} onExit={exit}/></div>;
- return <section className="integration-opening"><header><p className="manager-note">情景推演</p><h2>把选择放进未来，看看资金怎样变化</h2><p>买车推演 5 年，买房推演 30 年。两条路径经历相同的外部事件，由你选择如何应对。</p></header>
+ return <section className="integration-opening"><header><p className="manager-note">未来可能性推演</p><h2>把选择放进未来，看看资金怎样变化</h2><p>买车推演 5 年，买房推演 30 年。两条路径经历相同的外部事件，由你选择如何应对。</p></header>
  <div className="integration-actions"><button className="button-secondary" onClick={()=>{setOpening(undefined);setSelected(undefined);localStorage.removeItem(`life-integrated:${workspaceId}`);setPlaying(true);}}>使用虚构角色体验</button><a className="button-secondary" href="/simulation-archive">查看旧版入口与历史说明</a></div>
  {error&&<p role="alert">{error}</p>}
  {!draft?<p>正在读取当前底账…</p>:<><h3>确认简化游戏底账</h3><p className="integration-notice">{SIMULATION_NOTICE}</p>{goalId&&!draft.target&&<p>当前目标暂不支持推演。可选择买车或买房作为独立游戏假设，不修改原目标。</p>}
