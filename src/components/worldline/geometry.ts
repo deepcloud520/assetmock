@@ -2,7 +2,7 @@ import type { RenderModel, RenderStrategy } from '@/domain/worldline/render-mode
 
 export const CHART_WIDTH = 520;
 export const CHART_HEIGHT = 300;
-export const CHART_PAD = { top: 16, right: 58, bottom: 26, left: 56 };
+export const CHART_PAD = { top: 16, right: 128, bottom: 26, left: 56 };
 export const MARGINAL_GAP = 12;
 
 export interface YDomain { min: number; max: number }

@@ -17,15 +17,15 @@ async function main() {
     return;
   }
   for (const demo of demos) {
-    await db.asset.updateMany({ where: { workspaceId: demo.id, name: '演示活期资金' }, data: { currentValueMinor: 24_000_000n } });
+    await db.asset.updateMany({ where: { workspaceId: demo.id, name: '演示活期资金' }, data: { currentValueMinor: 28_000_000n } });
     await db.asset.updateMany({ where: { workspaceId: demo.id, name: '演示基金账户' }, data: { currentValueMinor: 0n } });
     await db.profile.updateMany({
       where: { workspaceId: demo.id },
       data: {
-        stableMonthlyIncomeMinor: 1_300_000n,
+        stableMonthlyIncomeMinor: 1_450_000n,
         rentExpenseMinor: 400_000n,
         transportExpenseMinor: 80_000n,
-        essentialExpenseMinor: 820_000n,
+        essentialExpenseMinor: 830_000n,
       },
     });
     // 预算只能追加新版本（表上有 immutability 触发器）
@@ -33,13 +33,13 @@ async function main() {
       db as never,
       demo.id,
       budgetSchema.parse({
-        incomeMinor: '1300000',
-        livingMinor: '1300000',
+        incomeMinor: '1450000',
+        livingMinor: '1320000',
         premiumsIncluded: true,
         debtIncluded: false,
         extraFixedMinor: '0',
         confirmed: true,
-        note: '虚构演示预算：收入 1.3 万、支出 1.3 万，几乎没有结余（故意做成压力场景）',
+        note: '虚构演示预算：收入 1.45 万、支出 1.32 万，几乎没有结余（故意做成压力场景）',
       }),
       undefined,
       '演示底账改为压力场景',

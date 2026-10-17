@@ -200,6 +200,8 @@
   .wl-card-row em { margin-left: auto; color: #6a819a; font-style: normal; font-variant-numeric: tabular-nums; }
   .wl-card-foot { border-top: 1px solid #e7eef6; padding-top: 0.3rem; color: #8296a8; font-size: 0.68rem; }
 
+  .wl-prob { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
   .wl-legend-line { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; margin-top: 0.3rem; color: #60758c; font-size: 0.72rem; }
   .wl-legend-line span { display: inline-flex; align-items: center; gap: 0.3rem; }
   .wl-legend-line i { width: 0.55rem; height: 0.55rem; border-radius: 2px; }

@@ -7,7 +7,7 @@ import {
   buildMarginalBins, strategyColor, wan, type YDomain,
 } from './geometry';
 
-/** 危险程度四档：红=已经不够 / 朱=逼近门槛 / 橙=贴线 / 绿=有余量。与策略无关，只看离门槛多远 */
+/** 危险程度：与策略无关，只看离门槛多远 */
 export const DANGER_COLORS = {
   short: '#a51f1a',
   risk: '#d2453f',
@@ -26,12 +26,19 @@ export function dangerColorOf(minor: number, floorMinor: number): string {
   return DANGER_COLORS[dangerLevelOf(minor, floorMinor)];
 }
 
+const LEVELS = ['short', 'risk', 'tight', 'safe'] as const;
+const LEVEL_LABELS: Record<(typeof LEVELS)[number], string> = {
+  short: '跌破 0',
+  risk: '低于门槛',
+  tight: '贴线',
+  safe: '有余量',
+};
+
 /**
- * 单策略面板：左边逐月分位带 + 代表线，右边"这条线最低摸到哪"的分布。
+ * 单策略面板：左边逐月分位带 + 代表线；右边"最低摸到哪"的**分布曲线**（填充色 + 概率）。
  *
- * 染色规则：**按危险程度**（离门槛多远），不按策略。
- * 右侧分布用自己的纵轴——原先与左图共用一条轴，整段分布被压成一条细缝，
- * 两种策略看起来一模一样。
+ * 右侧用一条密度曲线 + 面积填充表示分布，纵向是资金、横向是密度；
+ * 填充按危险程度做纵向渐变（红→橙→绿），旁边直接标"低于门槛/贴线/有余量"的占比。
  */
 export function StrategyPanel({ model, strategy, index, domain, cursor }: {
   model: RenderModel;
@@ -45,7 +52,7 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
   const plotWidth = plotRight - CHART_PAD.left;
   const innerHeight = CHART_HEIGHT - CHART_PAD.top - CHART_PAD.bottom;
   const marginalX = plotRight + MARGINAL_GAP;
-  const marginalWidth = CHART_PAD.right - MARGINAL_GAP - 6;
+  const marginalWidth = CHART_PAD.right - MARGINAL_GAP - 12;
 
   const X = (month: number) => CHART_PAD.left + (months <= 1 ? 0 : ((month - 1) / (months - 1)) * plotWidth);
   const Y = (value: number) => CHART_PAD.top + innerHeight - ((value - domain.min) / (domain.max - domain.min || 1)) * innerHeight;
@@ -54,7 +61,6 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
   const colors = strategyColor(strategy, index);
   const minima = useMemo(() => model.minUsables[strategy.id] ?? [], [model, strategy.id]);
 
-  // 分布自己的纵向范围：只覆盖这条策略真正摸到过的区间，两端各留 8%
   const marginal = useMemo(() => {
     const values = minima.length ? minima : [0];
     const low = Math.min(...values);
@@ -62,15 +68,37 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
     const span = Math.max(1, high - low);
     const min = low - span * 0.08;
     const max = high + span * 0.08;
-    const bins = buildMarginalBins(values, { min, max }, 28);
+    const bins = buildMarginalBins(values, { min, max }, 32);
     return { min, max, bins };
   }, [minima]);
 
   const YM = (value: number) => CHART_PAD.top + innerHeight - ((value - marginal.min) / (marginal.max - marginal.min || 1)) * innerHeight;
 
+  /** 分布曲线：从底部沿密度折线走到顶部，再回到底部闭合，整体填充 */
+  const curve = marginal.bins.length
+    ? `M${marginalX},${YM(marginal.min)} ` +
+      marginal.bins
+        .map(bin => `L${marginalX + Math.max(0.6, Math.min(1, bin.density) * marginalWidth)},${YM((bin.from + bin.to) / 2)}`)
+        .join(' ') +
+      ` L${marginalX},${YM(marginal.max)} Z`
+    : '';
+
+  /** 概率：按这条策略自己的最低值落在哪一档统计 */
+  const shares = useMemo(() => {
+    const total = minima.length || 1;
+    const counts = { short: 0, risk: 0, tight: 0, safe: 0 };
+    for (const value of minima) counts[dangerLevelOf(value, strategy.floorMinor)] += 1;
+    return LEVELS.map(level => ({ level, percent: Math.round((counts[level] / total) * 100) }));
+  }, [minima, strategy.floorMinor]);
+
+  const gradientId = `wl-danger-${strategy.id}`;
+  const stopAt = (value: number) => {
+    const ratio = (value - marginal.min) / (marginal.max - marginal.min || 1);
+    return `${Math.max(0, Math.min(100, (1 - ratio) * 100)).toFixed(1)}%`;
+  };
+
   const line = (pick: (point: { p5: number; p50: number; p90: number }) => number) => points.map((point, i) => `${i === 0 ? 'M' : 'L'}${X(i + 1)},${Y(pick(point))}`).join(' ');
   const bandArea = points.length < 2 ? '' : `${line(point => point.p90)} ${[...points].reverse().map((point, i) => `L${X(points.length - i)},${Y(point.p5)}`).join(' ')} Z`;
-  const medianLine = line(point => point.p50);
 
   const ticks = useMemo(() => {
     const count = 4;
@@ -82,7 +110,20 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
       <strong>{strategy.id.toUpperCase()} · {strategy.label}（{index === 0 ? '实线' : '虚线'}）</strong>
       <span>门槛 {wan(strategy.floorMinor)} · P50 {wan(strategy.p50)}</span>
     </figcaption>
-    <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label={`${strategy.label}的逐月可用资金分位带与最低值分布`}>
+    <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label={`${strategy.label}的逐月分位带与最低值分布`}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={DANGER_COLORS.safe} stopOpacity={0.55} />
+          <stop offset={stopAt(strategy.floorMinor * 1.25)} stopColor={DANGER_COLORS.safe} stopOpacity={0.5} />
+          <stop offset={stopAt(strategy.floorMinor * 1.25)} stopColor={DANGER_COLORS.tight} stopOpacity={0.55} />
+          <stop offset={stopAt(strategy.floorMinor)} stopColor={DANGER_COLORS.tight} stopOpacity={0.6} />
+          <stop offset={stopAt(strategy.floorMinor)} stopColor={DANGER_COLORS.risk} stopOpacity={0.65} />
+          <stop offset={stopAt(0)} stopColor={DANGER_COLORS.risk} stopOpacity={0.7} />
+          <stop offset={stopAt(0)} stopColor={DANGER_COLORS.short} stopOpacity={0.8} />
+          <stop offset="100%" stopColor={DANGER_COLORS.short} stopOpacity={0.85} />
+        </linearGradient>
+      </defs>
+
       {ticks.map(tick => <g key={tick}>
         <line x1={CHART_PAD.left} x2={plotRight} y1={Y(tick)} y2={Y(tick)} className="wl-grid" />
         <text x={CHART_PAD.left - 6} y={Y(tick) + 3.5} textAnchor="end" className="wl-axis">{wan(tick)}</text>
@@ -94,7 +135,7 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
       {points.length > 1 && <>
         <path d={points.map((point, i) => `${i === 0 ? 'M' : 'L'}${X(i + 1)},${Y(point.p90)}`).join(' ')} fill="none" stroke={colors} strokeOpacity={0.4} strokeWidth={1} strokeDasharray="4 4" />
         <path d={points.map((point, i) => `${i === 0 ? 'M' : 'L'}${X(i + 1)},${Y(point.p5)}`).join(' ')} fill="none" stroke={colors} strokeOpacity={0.4} strokeWidth={1} strokeDasharray="4 4" />
-        <path d={medianLine} fill="none" stroke={colors} strokeWidth={1.6} />
+        <path d={line(point => point.p50)} fill="none" stroke={colors} strokeWidth={1.6} />
       </>}
 
       {model.candidates.map(candidate => {
@@ -108,32 +149,30 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
       <line x1={X(cursor)} x2={X(cursor)} y1={CHART_PAD.top} y2={CHART_PAD.top + innerHeight} className="wl-cursor" />
       <text x={X(cursor)} y={CHART_PAD.top - 4} textAnchor="middle" className="wl-axis">第{cursor}月</text>
 
-      {/* 右侧：分布（自己的纵轴），柱子按危险程度上色 */}
+      {/* 右侧：最低值分布曲线（填充按危险程度渐变） */}
       <line x1={marginalX} x2={marginalX} y1={CHART_PAD.top} y2={CHART_PAD.top + innerHeight} className="wl-marginal-axis" />
-      {marginal.bins.map((bin, i) => {
-        const height = innerHeight / marginal.bins.length;
-        return <rect key={i}
-          x={marginalX}
-          y={YM(bin.to)}
-          width={Math.max(0.5, bin.density * marginalWidth)}
-          height={Math.max(0.6, height - 0.6)}
-          fill={dangerColorOf(bin.from, strategy.floorMinor)}
-          opacity={0.8}
-        />;
-      })}
-      <line x1={marginalX} x2={marginalX + marginalWidth} y1={YM(strategy.floorMinor)} y2={YM(strategy.floorMinor)} stroke={DANGER_COLORS.tight} strokeWidth={1.2} strokeDasharray="4 3" />
+      {curve && <path d={curve} fill={`url(#${gradientId})`} stroke="#6b7f93" strokeWidth={0.9} strokeOpacity={0.7} />}
+      <line x1={marginalX} x2={marginalX + marginalWidth} y1={YM(strategy.floorMinor)} y2={YM(strategy.floorMinor)} stroke={DANGER_COLORS.tight} strokeWidth={1.1} strokeDasharray="4 3" />
       <text x={marginalX + marginalWidth} y={YM(strategy.floorMinor) - 3} textAnchor="end" className="wl-axis">门槛</text>
 
-      {minima.length > 0 && <>
-        <text x={marginalX + marginalWidth} y={CHART_PAD.top + innerHeight + 12} textAnchor="end" className="wl-axis">最低值分布</text>
-        <text x={marginalX + marginalWidth} y={CHART_PAD.top + innerHeight + 21} textAnchor="end" className="wl-axis">{wan(marginal.min)}–{wan(marginal.max)}</text>
-      </>}
+      {/* 概率：直接写在曲线右侧 */}
+      {shares.map((share, i) => (
+        <text key={share.level}
+          x={marginalX + marginalWidth + 4}
+          y={CHART_PAD.top + 12 + i * 13}
+          className="wl-prob"
+          fill={DANGER_COLORS[share.level]}>
+          {LEVEL_LABELS[share.level]} {share.percent}%
+        </text>
+      ))}
+      <text x={marginalX + marginalWidth + 4} y={CHART_PAD.top + 12 + shares.length * 13} className="wl-axis">最低值分布</text>
     </svg>
     <p className="wl-legend-line">
-      {(['short', 'risk', 'tight', 'safe'] as const).map(level => <span key={level}>
+      {LEVELS.map(level => <span key={level}>
         <i style={{ background: DANGER_COLORS[level] }} />
-        {level === 'short' ? '已经不够' : level === 'risk' ? '低于门槛' : level === 'tight' ? '贴线（1.25 倍内）' : '有余量'}
+        {LEVEL_LABELS[level]}
       </span>)}
+      <span>{wan(marginal.min)}–{wan(marginal.max)}</span>
     </p>
   </figure>;
 }
