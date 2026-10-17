@@ -78,6 +78,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
   const [reload, setReload] = useState(0);
   /** 三段式：① 输入 → ② 一条世界线 → ③ 剩下的世界线 */
   const [stage, setStage] = useState<'form' | 'sample' | 'all'>('form');
+  /** 单一世界线露到第几个月：一次一步 */
+  const [revealed, setRevealed] = useState(1);
 
   const request = useCallback(async <T,>(path: string, data?: unknown): Promise<T> => {
     let response: Response;
@@ -285,11 +287,18 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
         </p>
       </header>
 
-      <SampleLineChart model={model} />
+      <SampleLineChart model={model} reveal={revealed} />
 
       <footer className="wl-actions">
         <button type="button" className="button-secondary" onClick={() => setStage('form')}>改输入</button>
-        <button type="button" className="button-primary" onClick={() => setStage('all')}>
+        {revealed < model.meta.months
+          ? <button type="button" className="button-primary" onClick={() => setRevealed(value => Math.min(model.meta.months, value + 1))}>
+              推进一步（第 {revealed + 1} 月）
+            </button>
+          : <button type="button" className="button-secondary" onClick={() => setRevealed(1)}>
+              从头再看一遍
+            </button>}
+        <button type="button" className={revealed < model.meta.months ? 'button-secondary' : 'button-primary'} onClick={() => setStage('all')}>
           看剩下的 {model.meta.n - 1} 条世界线
         </button>
       </footer>
@@ -349,7 +358,7 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
       </p>
 
       <footer className="wl-actions">
-        <button type="button" className="button-secondary" onClick={() => setStage('sample')}>回到那一条</button>
+        <button type="button" className="button-secondary" onClick={() => { setRevealed(1); setStage('sample'); }}>回到那一条</button>
         <button type="button" className="button-secondary" onClick={() => { setModel(undefined); setConfirmed(false); setStage('form'); }}>改输入</button>
         <button type="button" className="button-primary" disabled={busy} onClick={() => void run()}>{busy ? '正在重算…' : '换一批重算'}</button>
       </footer>
