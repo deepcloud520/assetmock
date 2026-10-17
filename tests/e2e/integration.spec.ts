@@ -1,7 +1,10 @@
 import { test,expect } from '@playwright/test';
 test('whole product opens, isolated game saves a report and restores',async({page})=>{
  await page.goto('/');await expect(page.getByText('你的财富概览',{exact:true})).toBeVisible();
- await page.getByRole('tab',{name:'未来规划',exact:true}).click();await page.getByRole('tab',{name:'情景推演',exact:true}).click();
+ await expect(page.getByRole('tab',{name:'未来规划',exact:true})).toHaveCount(0);
+ if(await page.getByRole('button',{name:'打开导航',exact:true}).isVisible())await page.getByRole('button',{name:'打开导航',exact:true}).click();
+ await page.getByRole('button',{name:'目标管家',exact:true}).click();await page.getByRole('button',{name:'未来可能性推演',exact:true}).click();
+ await expect(page.getByRole('button',{name:'目标管家',exact:true})).toHaveClass(/nav-item-active/);
  await expect(page.getByRole('heading',{name:'确认简化游戏底账'})).toBeVisible();
  await page.getByRole('button',{name:'使用虚构角色体验'}).click();
  await page.getByRole('button',{name:/买一辆自己的车/}).click();await page.getByRole('button',{name:'选择林舟'}).click();
@@ -15,7 +18,10 @@ test('whole product opens, isolated game saves a report and restores',async({pag
 test('demo ledger confirms, runs five years, and records stay isolated on mobile',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');
  await page.getByRole('button',{name:'进入独立演示空间'}).click();await expect(page.getByText('演示数据 · 非真实财务／行情',{exact:true})).toBeVisible();
- await page.getByRole('tab',{name:'未来规划',exact:true}).click();await page.getByRole('tab',{name:'情景推演',exact:true}).click();
+ await expect(page.getByRole('tab',{name:'未来规划',exact:true})).toHaveCount(0);
+ if(await page.getByRole('button',{name:'打开导航',exact:true}).isVisible())await page.getByRole('button',{name:'打开导航',exact:true}).click();
+ await page.getByRole('button',{name:'目标管家',exact:true}).click();await page.getByRole('button',{name:'未来可能性推演',exact:true}).click();
+ await expect(page.getByRole('button',{name:'目标管家',exact:true})).toHaveClass(/nav-item-active/);
  await expect(page.getByLabel('纳入现金',{exact:true})).toHaveValue('1200000.00');await expect(page.getByLabel('纳入投资',{exact:true})).toHaveValue('200000.00');
  await page.getByRole('checkbox').check();await page.getByRole('button',{name:'确认底账，比较付款方案'}).click();
  await expect(page.getByText('5 年 / 60 个月的生活假设')).toBeVisible();await page.getByRole('checkbox').check();await page.getByRole('button',{name:'确认方案，开始人生'}).click();

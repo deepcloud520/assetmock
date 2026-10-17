@@ -74,7 +74,7 @@ function hub(tab: HubTab, options: { workspaceId?: string; activeGoal?: boolean;
 describe("planning hub", () => {
   it("keeps the future-planning sections reachable from one page", () => {
     const html = render(hub("plans"));
-    for (const label of ["方案比较", "情景推演"]) expect(html).toContain(label);
+    for (const label of ["方案比较", "未来可能性推演"]) expect(html).toContain(label);
     expect(html).not.toContain("持续财富任务");
     expect(html.match(/role="tab"/g)).toHaveLength(2);
     expect(html).not.toContain("行动计划");
