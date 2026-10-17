@@ -30,7 +30,7 @@ export function rulesFor(target: Target): Rules {
   return { version: '0.2.0', months: target === 'home' ? 360 : 60, startMonth: '2026-11', probabilities: { medical: 1000, jobLoss: 2000, bonusDelay: 200000, marketDrop: 5000, career: 5000 }, medicalCost: 5000000, medicalDuration: 3, medicalCooldown: 12, jobCooldown: 12, careerCooldown: 24, marketDropRate: '0.2' };
 }
 export const methodLabel = { full: '全款', low: '低首付贷款', high: '高首付贷款' };
-export function calculate(raw: unknown, offers: LoanOffer[], frozen?: Setup): { setup: Setup; errors: string[] } {
+export function calculate(raw: unknown, offers: LoanOffer[], frozen?: Pick<Setup, 'profile' | 'rules' | 'source'>): { setup: Setup; errors: string[] } {
   const input = inputSchema.parse(raw);
   const profile = frozen?.profile ?? characters.find(p => p.id === input.profileId && p.target === input.target);
   if (!profile || profile.id !== input.profileId || profile.target !== input.target) throw new Error('角色与目标不匹配');
@@ -48,5 +48,5 @@ export function calculate(raw: unknown, offers: LoanOffer[], frozen?: Setup): { 
     const shortfall = down + (full ? 0 : offer.fee) - profile.cash;
     if (shortfall > 0) errors.push(`${id.toUpperCase()} ${plan.label}开局现金不足，缺口 ${(shortfall / 100).toFixed(2)} 元。`);
   });
-  return { setup: { input, profile: structuredClone(profile), plans, rules: structuredClone(frozen?.rules ?? rulesFor(input.target)), runningCost: input.target === 'home' ? 100000 : 150000, depreciation: input.target === 'home' ? 0 : multiply(input.price, '0.01') }, errors };
+  return { setup: { source: frozen?.source, input, profile: structuredClone(profile), plans, rules: structuredClone(frozen?.rules ?? rulesFor(input.target)), runningCost: input.target === 'home' ? 100000 : 150000, depreciation: input.target === 'home' ? 0 : multiply(input.price, '0.01') }, errors };
 }

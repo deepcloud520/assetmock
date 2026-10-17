@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { defaultInput } from '../../src/domain/v2/setup';
 import type { PublicRun } from '../../src/domain/v2/types';
 function setTape(id: string, changes: Record<number, Record<string, number>> = {}) {
-  const db = new Database('./data/e2e.sqlite');
+  const db = new Database('./.local-data/e2e/game.sqlite');
   try {
     const row = db.prepare('SELECT body FROM v2_runs WHERE id=?').get(id) as { body: string };
     const run = JSON.parse(row.body); run.tape = Array.from({ length: run.setup.rules.months }, (_, i) => ({ medical: 999999, jobLoss: 999999, bonusDelay: 999999, marketDrop: 999999, career: 999999, ...changes[i + 1] }));
@@ -12,7 +12,7 @@ function setTape(id: string, changes: Record<number, Record<string, number>> = {
 }
 test('v0.2 购房三选二、360个月、阶段回顾和重玩', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/'); await expect(page.getByRole('button', { name: /拥有一个自己的家/ })).toBeVisible(); await page.screenshot({ path: 'test-results/v2-targets.png', fullPage: true });
+  await page.goto('/game'); await expect(page.getByRole('button', { name: /拥有一个自己的家/ })).toBeVisible(); await page.screenshot({ path: 'test-results/v2-targets.png', fullPage: true });
   await page.getByRole('button', { name: /拥有一个自己的家/ }).click();
   await page.getByRole('button', { name: '选择可全款型' }).click();
   await expect(page.getByText('30 年 / 360 个月的生活假设')).toBeVisible();
@@ -37,7 +37,7 @@ test('v0.2 购房三选二、360个月、阶段回顾和重玩', async ({ page }
   expect(errors).toEqual([]);
 });
 test('v0.2 手机端暂停刷新、独立选择和同步操作', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/game');
   await page.getByRole('button', { name: /买一辆自己的车/ }).click(); await page.getByRole('button', { name: '选择林舟' }).click();
   await page.getByRole('checkbox').check(); await page.getByRole('button', { name: '确认方案，开始人生' }).click();
   await expect(page.getByTestId('v2-month')).toHaveText('0');

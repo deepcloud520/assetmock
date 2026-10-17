@@ -47,7 +47,7 @@ export function toPublic(run: Run): PublicRun {
     facts.push({ id: 'pending:events', text: `第${run.pending.month}月待选择，尚未结算：${run.pending.events.map(e => e.title).join('、')}。` });
     trialResults.forEach(t => facts.push({ id: `trial:${t.path}:${t.choice}`, text: `${t.path.toUpperCase()}选择${choiceLabels[t.choice]}（${{ lower: '停薪3个月，之后工资固定为原工资80%', wait: '停薪6个月，之后恢复原工资', temporary: '停薪3个月，再3个月固定领取原工资40%，之后恢复原工资', accept: '下月工资增加10%，生活费增加500元', decline: '工资与支出维持现状' }[t.choice]}），已知本月事件并假设之后没有新事件的六个月试算：截至第${t.lastMonth}月剩余资金${money(t.funds)}元${t.failureMonth ? `，第${t.failureMonth}月资金不足` : ''}；不是未来保证。` }));
   }
-  return { schemaVersion: 2, id: run.id, version: run.version, input: run.setup.input, profile: run.setup.profile, plans: run.setup.plans, rules: run.setup.rules, month: run.state.month,
+  return { source: run.setup.source, schemaVersion: 2, id: run.id, version: run.version, input: run.setup.input, profile: run.setup.profile, plans: run.setup.plans, rules: run.setup.rules, month: run.state.month,
     totalMonths: run.setup.rules.months, status: run.status, paths: run.state.paths, pending: run.pending, trials: trialResults, history: run.history,
     timeline: [{ month: 0, a: funds(run.initial.paths.a), b: funds(run.initial.paths.b) }, ...run.history.map(m => ({ month: m.month, a: m.paths.a.ledger ? funds(m.paths.a.state) : null, b: m.paths.b.ledger ? funds(m.paths.b.state) : null }))],
     annual: run.history.filter(m => m.month % 12 === 0).map(m => ({ year: m.month / 12, facts: stageFacts(run, m.month - 12, m.month) })),
