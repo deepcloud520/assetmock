@@ -1,2 +1,3 @@
 import { defineConfig } from 'vitest/config';
-export default defineConfig({ test: { include: ['tests/**/*.test.ts'], environment: 'node' } });
+import { resolve } from 'node:path';
+export default defineConfig({ resolve: { alias: { '@': resolve('src') } }, test: { include: ['tests/**/*.test.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts'], environment: 'node', fileParallelism: false } });

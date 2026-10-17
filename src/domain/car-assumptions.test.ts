@@ -1,0 +1,4 @@
+import { expect, it } from "vitest";
+import { carAssumptions } from "./car-assumptions";
+import { carFactsSchema } from "./car-planning";
+it("distinguishes changed facts, declared execution and unverified arrival", () => { const f = carFactsSchema.parse({ monthlyIncomeMinor: "1000000", cashflowConfirmed: true, bonuses: [{ id: "b", name: "奖金", amountMinor: "100000", month: "2026-10", confirmed: true }], cuts: [{ id: "c", name: "外卖", amountMinor: "10000", impact: "做饭", accepted: true }] }); const rows = carAssumptions(f, { ...f, monthlyIncomeMinor: "800000", cuts: [{ ...f.cuts[0], accepted: false }] }, "2026-10"); expect(rows.find((r) => r.id === "income")?.status).toBe("CHANGED"); expect(rows.find((r) => r.id === "BONUS:b")?.status).toBe("PENDING"); expect(rows.find((r) => r.id === "CUT:c")?.status).toBe("CHANGED"); });

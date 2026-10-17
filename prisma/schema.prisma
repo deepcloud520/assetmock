@@ -1,0 +1,1639 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  paperAccounts         PaperAccount[]
+  paperMarketDrafts      PaperMarketDraft[]
+  replayDatasets        PaperReplayDataset[]
+  id                    String                 @id @default(cuid())
+  professionalRevision  Int                    @default(0)
+  businessMigratedAt    DateTime?
+  dataEpoch             Int                    @default(0)
+  portfolioRevision     Int                    @default(0)
+  transactionRevision   Int                    @default(0)
+  ledgerConfirmedAt     DateTime?
+  ledgerHeadersJson     String                 @default("{}")
+  promptOverridesJson   String                 @default("{}")
+  multiGoalConsentAt    DateTime?
+  profile               Profile?
+  assets                Asset[]
+  liabilities           Liability[]
+  goals                 Goal[]
+  auditEvents           AuditEvent[]
+  calculationSnapshots  CalculationSnapshot[]
+  tasks                 AgentTask[]
+  diagnoses             Diagnosis[]
+  planSets              PlanSet[]
+  scenarioResults       ScenarioResult[]
+  actions               Action[]
+  agentSessions         AgentSession[]
+  goalDecisions         GoalDecision[]
+  futurePlanningReports FuturePlanningReport[]
+  transactions          Transaction[]
+  cashflowAnalyses      CashflowAnalysis[]
+  planningMemories      PlanningMemory[]
+  managerState          ManagerState?
+  insurancePolicies     InsurancePolicy[]
+  holdingDetails        HoldingDetail[]
+  professionalEvaluations ProfessionalEvaluation[]
+  productSelections     ProductSelection[]
+  managerReminders      ManagerReminder[]
+  carDecisions          CarDecision[]
+  carReservations       CarFundingReservation[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+// Simulated trading is a separate ledger. No relation to real Asset or Transaction.
+model MarketInstrument {
+  id String @id
+  name String
+  board String
+  source String
+  updatedAt DateTime @updatedAt
+  quotes MarketQuote[]
+  states MarketDailyState[]
+  orders PaperOrder[]
+  positions PaperPosition[]
+  watchlists PaperWatchlist[]
+  replayBars PaperReplayBar[]
+  conditions PaperCondition[]
+}
+
+model MarketCalendar {
+  day String @id
+  isOpen Boolean
+  source String
+  verifiedAt DateTime
+}
+
+model MarketDailyState {
+  id String @id @default(cuid())
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  day String
+  status String
+  eventCoverage Boolean @default(false)
+  lowerMinor BigInt
+  upperMinor BigInt
+  source String
+  verifiedAt DateTime
+  @@unique([instrumentId, day])
+}
+
+model MarketQuote {
+  id String @id
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  provider String
+  sourceAt DateTime
+  fetchedAt DateTime
+  priceMinor BigInt
+  previousMinor BigInt
+  bidMinor BigInt
+  askMinor BigInt
+  bidQuantity Int
+  askQuantity Int
+  lowerMinor BigInt
+  upperMinor BigInt
+  fills PaperFill[]
+  consumptions PaperQuoteConsumption[]
+  @@index([instrumentId, sourceAt])
+}
+
+model PaperRuleVersion {
+  id String @id
+  configJson String
+  source String
+  createdAt DateTime @default(now())
+  accounts PaperAccount[]
+  orders PaperOrder[]
+}
+
+model MarketReviewRecord {
+  id String @id @default(cuid())
+  dataJson String
+  createdAt DateTime @default(now())
+}
+
+model PaperAccount {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status String @default("ACTIVE")
+  purpose String @default("MANUAL")
+  mode String @default("LIVE")
+  name String @default("手动模拟账户")
+  initialMinor BigInt
+  cashMinor BigInt
+  frozenMinor BigInt @default(0)
+  realizedMinor BigInt @default(0)
+  feesMinor BigInt @default(0)
+  version Int @default(0)
+  ruleId String
+  rule PaperRuleVersion @relation(fields: [ruleId], references: [id])
+  health String @default("OK")
+  createdAt DateTime @default(now())
+  archivedAt DateTime?
+  orders PaperOrder[]
+  positions PaperPosition[]
+  entries PaperCashEntry[]
+  previews PaperPreview[]
+  notes PaperReviewNote[]
+  snapshots PaperEquitySnapshot[]
+  watchlists PaperWatchlist[]
+  requests PaperRequest[]
+  adjustments PaperAdjustment[]
+  consumptions PaperQuoteConsumption[]
+  operationalEvents PaperOperationalEvent[]
+  reconciliations PaperReconciliation[]
+  experiment PaperStrategyExperiment?
+  replaySession PaperReplaySession?
+  conditions PaperCondition[]
+  @@unique([workspaceId, id])
+}
+
+model PaperOrder {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  side String
+  limitMinor BigInt
+  quantity Int
+  filled Int @default(0)
+  turnoverMinor BigInt @default(0)
+  feesMinor BigInt @default(0)
+  frozenMinor BigInt @default(0)
+  status String @default("OPEN")
+  day String
+  ruleId String
+  rule PaperRuleVersion @relation(fields: [ruleId], references: [id])
+  reason String @default("")
+  createdAt DateTime @default(now())
+  fills PaperFill[]
+  events PaperOrderEvent[]
+  condition PaperCondition?
+  strategyRun PaperStrategyRun?
+  @@unique([workspaceId, id])
+  @@unique([workspaceId, accountId, id])
+  @@index([status, day])
+}
+
+model PaperOrderEvent {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  orderId String
+  order PaperOrder @relation(fields: [workspaceId, accountId, orderId], references: [workspaceId, accountId, id], onDelete: Cascade)
+  type String
+  detail String
+  createdAt DateTime @default(now())
+}
+
+model PaperFill {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  orderId String
+  order PaperOrder @relation(fields: [workspaceId, accountId, orderId], references: [workspaceId, accountId, id], onDelete: Cascade)
+  quoteId String
+  quote MarketQuote @relation(fields: [quoteId], references: [id])
+  quantity Int
+  priceMinor BigInt
+  feeMinor BigInt
+  costMinor BigInt
+  realizedMinor BigInt
+  createdAt DateTime @default(now())
+  @@unique([orderId, quoteId])
+}
+
+model PaperPosition {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  quantity Int @default(0)
+  frozen Int @default(0)
+  costMinor BigInt @default(0)
+  lots PaperPositionLot[]
+  @@unique([accountId, instrumentId])
+  @@unique([workspaceId, accountId, id])
+}
+
+model PaperPositionLot {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  positionId String
+  position PaperPosition @relation(fields: [workspaceId, accountId, positionId], references: [workspaceId, accountId, id], onDelete: Cascade)
+  quantity Int
+  sellableOn String
+  createdAt DateTime @default(now())
+}
+
+model PaperCashEntry {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  eventKey String @unique
+  type String
+  amountMinor BigInt
+  balanceMinor BigInt
+  reference String
+  createdAt DateTime @default(now())
+}
+
+model PaperPreview {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  version Int
+  epoch Int
+  inputJson String
+  resultJson String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PaperRequest {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  key String
+  signature String
+  resultJson String
+  @@unique([workspaceId, key])
+}
+
+model PaperQuoteConsumption {
+  id String @id @default(cuid())
+  accountId String
+  account PaperAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  quoteId String
+  quote MarketQuote @relation(fields: [quoteId], references: [id])
+  side String
+  quantity Int
+  @@unique([accountId, quoteId, side])
+}
+
+model PaperWatchlist {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  @@unique([accountId, instrumentId])
+}
+
+model PaperEquitySnapshot {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  key String
+  cashMinor BigInt
+  marketMinor BigInt?
+  equityMinor BigInt?
+  quality String
+  evidenceJson String
+  createdAt DateTime @default(now())
+  @@unique([accountId, key])
+}
+
+model PaperReviewNote {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  content String
+  createdAt DateTime @default(now())
+}
+
+model PaperAdjustment {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  eventKey String
+  instrumentId String
+  kind String
+  cashMinor BigInt
+  quantity Int
+  source String
+  createdAt DateTime @default(now())
+  @@unique([accountId, eventKey])
+}
+
+model PaperWorkerLease {
+  id String @id
+  owner String
+  token Int @default(0)
+  expiresAt DateTime
+  heartbeatAt DateTime
+  startedAt DateTime @default(now())
+  status String
+  error String @default("")
+}
+
+model MarketSourceHealth {
+  provider String @id
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  failureCount Int @default(0)
+  error String @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model PaperOperationalEvent {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  type String
+  status String @default("RECORDED")
+  detailJson String
+  createdAt DateTime @default(now())
+  @@index([accountId, createdAt])
+}
+
+model PaperReconciliation {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  accountVersion Int
+  issuesJson String
+  status String
+  createdAt DateTime @default(now())
+  @@index([accountId, createdAt])
+}
+
+model PaperMarketDraft {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  dataJson String
+  signature String
+  status String @default("PENDING")
+  version Int @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  publishedAt DateTime?
+}
+
+model PaperBenchmarkPoint {
+  id String @id @default(cuid())
+  day String
+  symbol String @default("sh000300")
+  closeMinor BigInt
+  source String
+  createdAt DateTime @default(now())
+  @@unique([symbol, day])
+}
+
+model Transaction {
+  id                   String    @id @default(cuid())
+  workspaceId          String
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  direction            String
+  amountMinor          BigInt
+  occurredOn           DateTime
+  description          String
+  category             String
+  specialKind          String    @default("NONE")
+  analysisTreatment    String    @default("COUNT")
+  source               String    @default("MANUAL")
+  classificationSource String    @default("FALLBACK")
+  deletedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([workspaceId, occurredOn, deletedAt])
+  @@index([workspaceId, direction, category])
+}
+
+model CashflowAnalysis {
+  id                  String    @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  periodKind          String
+  periodStart         DateTime
+  periodEnd           DateTime
+  transactionRevision Int
+  statisticsJson      String
+  agentReportJson     String
+  model               String
+  promptVersion       String
+  createdAt           DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, periodStart, periodEnd])
+}
+
+model AgentSession {
+  id             String            @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title          String
+  objective      String?
+  kind           String            @default("WEALTH_TASK")
+  agentKey       String?
+  decisionId     String?
+  version        Int               @default(1)
+  summaryJson    String            @default("{}")
+  runs           AgentRun[]
+  goalDraftJson  String            @default("{}")
+  goalId         String?
+  goal           Goal?             @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  status         String            @default("ACTIVE")
+  sourceRevision Int
+  messages       AgentMessage[]
+  steps          AgentStep[]
+  constraints    AgentConstraint[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([workspaceId, id])
+  @@index([workspaceId, updatedAt])
+}
+
+model AgentConstraint {
+  id          String                    @id @default(cuid())
+  sessionId   String
+  session     AgentSession              @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content     String
+  category    String
+  status      String                    @default("ACTIVE")
+  version     Int                       @default(1)
+  validUntil  DateTime?
+  confirmedAt DateTime                  @default(now())
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  history     AgentConstraintRevision[]
+
+  @@index([sessionId, createdAt])
+}
+
+model AgentConstraintRevision {
+  id           String          @id @default(cuid())
+  constraintId String
+  constraint   AgentConstraint @relation(fields: [constraintId], references: [id], onDelete: Cascade)
+  version      Int
+  content      String
+  category     String
+  status       String
+  validUntil   DateTime?
+  confirmedAt  DateTime
+
+  @@unique([constraintId, version])
+}
+
+model AgentMessage {
+  id             String       @id @default(cuid())
+  sessionId      String
+  session        AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clientMessageId String?
+  runId          String?
+  displayJson    String @default("{}")
+  role           String
+  content        String
+  sourceRevision Int
+  createdAt      DateTime     @default(now())
+
+  @@unique([sessionId, clientMessageId])
+  @@index([sessionId, createdAt])
+}
+
+model AgentStep {
+  id             String       @id @default(cuid())
+  sessionId      String
+  session        AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  runId          String?
+  sequence       Int
+  toolName       String
+  status         String       @default("PROCESSING")
+  inputJson      String
+  outputJson     String?
+  errorCode      String?
+  durationMs     Int?
+  sourceRevision Int
+  createdAt      DateTime     @default(now())
+  completedAt    DateTime?
+
+  @@unique([sessionId, sequence])
+  @@index([sessionId, createdAt])
+}
+
+model ScenarioResult {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  planSetId      String
+  planKey        String
+  sourceRevision Int
+  resultJson     String
+  createdAt      DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+}
+
+model Action {
+  id                    String           @id @default(cuid())
+  sourceKey             String?          @unique
+  workspaceId           String
+  workspace             Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  goalId                String?
+  goal                  Goal?            @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  generationTaskId      String
+  planSetId             String?
+  planKey               String?
+  diagnosisId           String?
+  detailsJson           String?
+  feedback              ActionFeedback[]
+  sourceRevision        Int
+  kind                  String
+  title                 String
+  reason                String
+  amountMinor           BigInt?
+  priority              Int
+  dueDate               DateTime?
+  status                String           @default("PROPOSED")
+  verificationType      String
+  productConditionsJson String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([workspaceId, generationTaskId])
+  @@index([workspaceId, createdAt])
+  @@index([goalId, createdAt])
+  managerReminders ManagerReminder[]
+  @@unique([workspaceId, id])
+}
+
+model ActionFeedback {
+  id         String   @id @default(cuid())
+  actionId   String
+  action     Action   @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  fromStatus String
+  toStatus   String
+  reason     String
+  createdAt  DateTime @default(now())
+
+  @@index([actionId, createdAt])
+}
+
+model AgentTask {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type           String
+  status         String    @default("PROCESSING")
+  sourceRevision Int
+  resultId       String?
+  errorCode      String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  @@index([workspaceId, createdAt])
+}
+
+model Diagnosis {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceRevision Int
+  promptVersion  String
+  model          String
+  mode           String
+  resultJson     String
+  createdAt      DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+}
+
+model PlanSet {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  goalId          String?
+  goal            Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  sourceRevision  Int
+  promptVersion   String
+  model           String
+  mode            String
+  resultJson      String
+  selectedPlanKey String?
+  recommendedPlanKey String?
+  futurePlanningReports FuturePlanningReport[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([workspaceId, createdAt])
+  @@index([goalId, createdAt])
+}
+
+model FuturePlanningReport {
+  id                      String    @id @default(cuid())
+  workspaceId             String
+  workspace               Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  goalId                  String?
+  goal                    Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  planSetId               String?
+  planSet                 PlanSet?  @relation(fields: [planSetId], references: [id], onDelete: SetNull)
+  planKey                 String?
+  sourceRevision          Int
+  promptVersion           String
+  model                   String
+  mode                    String
+  informationCompleteness String
+  resultText              String
+  resultJson              String?
+  adoptedAt               DateTime?
+  createdAt               DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([goalId, createdAt])
+  @@index([planSetId, createdAt])
+}
+
+model CalculationSnapshot {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceRevision Int
+  formulaVersion String
+  resultJson     String
+  createdAt      DateTime  @default(now())
+
+  @@unique([workspaceId, sourceRevision, formulaVersion])
+  @@index([workspaceId, createdAt])
+}
+
+model Profile {
+  id                       String    @id @default(cuid())
+  workspaceId              String    @unique
+  workspace                Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  age                      Int?
+  familyStatus             String    @default("SINGLE")
+  riskLevel                String    @default("BALANCED")
+  baseCurrency             String    @default("CNY")
+  stableMonthlyIncomeMinor BigInt    @default(0)
+  otherMonthlyIncomeMinor  BigInt    @default(0)
+  rentExpenseMinor         BigInt    @default(0)
+  transportExpenseMinor    BigInt    @default(0)
+  essentialExpenseMinor    BigInt    @default(0)
+  source                   String    @default("USER_INPUT")
+  asOf                     DateTime  @default(now())
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+}
+
+model Asset {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  goalId                String?
+  goal                  Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  type                  String
+  name                  String
+  currentValueMinor     BigInt
+  currency              String    @default("CNY")
+  liquidityLevel        String
+  riskLevel             Int
+  isInvestable          Boolean   @default(true)
+  isAdjustable          Boolean   @default(true)
+  holdingDetail         HoldingDetail?
+  classificationSource  String    @default("RULE_FALLBACK")
+  classificationVersion String    @default("asset-classifier-v0")
+  source                String    @default("USER_INPUT")
+  asOf                  DateTime  @default(now())
+  deletedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([workspaceId, deletedAt])
+  @@index([goalId])
+  reservedFunds CarFundingReservation[]
+  decisionReasons DecisionReason[]
+  decisionConstraints DecisionConstraint[]
+  @@unique([workspaceId, id])
+}
+
+model Liability {
+  id                      String    @id @default(cuid())
+  workspaceId             String
+  workspace               Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type                    String
+  name                    String
+  outstandingBalanceMinor BigInt
+  isInstallment           Boolean   @default(false)
+  monthlyPaymentMinor     BigInt    @default(0)
+  remainingMonths         Int?
+  totalRepaymentMinor     BigInt?
+  principalMinor          BigInt?
+  interestMinor           BigInt?
+  repaymentMethod         String?
+  source                  String    @default("USER_INPUT")
+  asOf                    DateTime  @default(now())
+  deletedAt               DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([workspaceId, deletedAt])
+}
+
+model Goal {
+  id                       String                 @id @default(cuid())
+  workspaceId              String
+  workspace                Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assets                   Asset[]
+  agentSessions            AgentSession[]
+  futurePlanningReports    FuturePlanningReport[]
+  planSets                 PlanSet[]
+  actions                  Action[]
+  type                     String
+  name                     String
+  targetAmountMinor        BigInt
+  targetAmountSource       String                 @default("USER_INPUT")
+  targetDate               DateTime
+  preparedAmountMinor      BigInt                 @default(0)
+  monthlyContributionMinor BigInt                 @default(0)
+  priority                 Int                    @default(2)
+  priorityNote             String?
+  priorityConfirmedAt      DateTime?
+  isFlexible               Boolean                @default(false)
+  source                   String                 @default("USER_INPUT")
+  asOf                     DateTime               @default(now())
+  deletedAt                DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  @@index([workspaceId, deletedAt])
+  decisionConstraints DecisionConstraint[]
+  @@unique([workspaceId, id])
+}
+
+model AuditEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  entityType  String
+  entityId    String
+  action      String
+  revision    Int
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+}
+
+// Draft facts are distinct from real balances; adoption never moves money.
+model CarDecision {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  goalId                String?
+  status                String    @default("DRAFT")
+  version               Int       @default(1)
+  sourceRevision        Int       @default(0)
+  factsJson             String
+  conversationJson      String    @default("[]")
+  resumeKey             String?   @unique
+  goalSessionId         String?   @unique
+  viewStage             String    @default("facts")
+  dependenciesJson      String    @default("{}")
+  fieldEvidenceJson     String    @default("{}")
+  evaluationJson        String?
+  activePlanId          String?
+  purchaseJson          String?
+  plans                 CarPlanVersion[]
+  reviews               CarMonthlyReview[]
+  reservations          CarFundingReservation[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([workspaceId, updatedAt])
+  structuredConstraints DecisionConstraint[]
+  evaluations CarEvaluationRecord[]
+  @@unique([workspaceId, id])
+}
+
+model CarPlanVersion {
+  id                  String      @id @default(cuid())
+  decisionId          String
+  decision            CarDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  version             Int
+  sourceRevision      Int
+  transactionRevision Int
+  snapshotJson        String
+  factsJson           String
+  reason              String
+  adoptedAt           DateTime    @default(now())
+
+  @@unique([decisionId, version])
+  structuredReasons DecisionReason[]
+  structuredConstraints DecisionConstraint[]
+  assumptions PlanAssumption[]
+}
+
+model CarFundingReservation {
+  id          String      @id @default(cuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  decisionId  String
+  decision    CarDecision @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  assetId     String
+  amountMinor BigInt
+
+  @@unique([decisionId, assetId])
+  @@index([workspaceId, assetId])
+  asset Asset @relation(fields: [workspaceId, assetId], references: [workspaceId, id], onDelete: Cascade)
+}
+
+model CarMonthlyReview {
+  id                  String      @id @default(cuid())
+  decisionId          String
+  decision            CarDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  month               String
+  activePlanId        String
+  sourceRevision      Int
+  transactionRevision Int
+  factsJson           String
+  resultJson          String
+  adoptedPlanId       String?
+  createdAt           DateTime    @default(now())
+
+  @@unique([decisionId, month])
+  assumptionVerifications AssumptionVerification[]
+}
+
+model PlanningMemory {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  decisionId     String?
+  content        String
+  evidenceType   String
+  sourceRef      String
+  quote          String
+  scope          String    @default("DECISION")
+  nature         String    @default("SOFT")
+  status         String    @default("ACTIVE")
+  ruleJson       String    @default("{}")
+  dependencyJson String    @default("{}")
+  reviewWhen     String
+  model          String?
+  promptVersion  String?
+  version        Int       @default(1)
+  supersedesId   String?
+  confirmedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([workspaceId, decisionId, status])
+}
+
+model ManagerState {
+  workspaceId    String    @id
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  version        Int       @default(1)
+  budgetJson     String    @default("{}")
+  insuranceJson  String    @default("{}")
+  investmentJson String    @default("{}")
+  updatedAt      DateTime  @updatedAt
+}
+
+model InsurancePolicy {
+  insured String?
+  category String?
+  coverageMinor BigInt?
+  premiumMinor BigInt?
+  paymentMonths Int?
+  startsOn String?
+  endsOn String?
+  confirmed Boolean @default(false)
+  cashValueAssetId String?
+  productVersionId String?
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  version     Int       @default(1)
+  dataJson    String
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@index([workspaceId, deletedAt])
+  productVersion ProductVersion? @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
+}
+
+model HoldingDetail {
+  productVersionId String?
+  availableOn String?
+  feeMinor BigInt?
+  confirmed Boolean @default(false)
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assetId     String    @unique
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  version     Int       @default(1)
+  dataJson    String
+  updatedAt   DateTime  @updatedAt
+  @@index([workspaceId])
+  productVersion ProductVersion? @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
+}
+
+model ProfessionalEvaluation {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  manager          String
+  sourceSignature  String
+  inputJson        String
+  resultJson       String
+  createdAt        DateTime  @default(now())
+  @@index([workspaceId, manager, createdAt])
+  selections ProductSelection[]
+  redLineChecks RedLineCheck[]
+  @@unique([workspaceId, id])
+}
+
+model ProductSelection {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  evaluationId String
+  productId    String
+  status       String    @default("INTENT")
+  snapshotJson String
+  createdAt    DateTime  @default(now())
+  @@unique([workspaceId, evaluationId, productId])
+  @@index([workspaceId, createdAt])
+  evaluation ProfessionalEvaluation @relation(fields: [workspaceId, evaluationId], references: [workspaceId, id], onDelete: Cascade)
+  productVersionLink ProductSelectionVersion?
+  @@unique([workspaceId, id])
+}
+
+model ManagerReminder {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceKey   String    @unique
+  title       String
+  manager     String
+  dueDate     DateTime
+  status      String    @default("OPEN")
+  snoozedUntil DateTime?
+  actionId    String?
+  detailsJson String    @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@index([workspaceId, status, dueDate])
+  action Action? @relation(fields: [workspaceId, actionId], references: [workspaceId, id], onDelete: Cascade)
+}
+
+
+// Unified personal database: business facts, immutable definitions and review events.
+model BudgetVersion {
+  status String @default("ACTIVE")
+  id String @id @default(cuid())
+  workspaceId String
+  validFrom String
+  validTo String?
+  revision Int
+  incomeMinor BigInt
+  livingMinor BigInt
+  debtIncluded Boolean
+  premiumsIncluded Boolean
+  dataJson String
+  reason String
+  source String @default("USER")
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, revision])
+  @@index([workspaceId, validFrom, validTo])
+  items BudgetItem[]
+  @@unique([workspaceId, id])
+}
+model BudgetItem {
+  id String @id @default(cuid())
+  workspaceId String
+  budgetVersionId String
+  kind String
+  sourceRef String
+  amountMinor BigInt
+  allocation String
+  dueDay Int?
+  dueOn String?
+  includedInLiving Boolean @default(false)
+  @@unique([budgetVersionId, sourceRef])
+  budget BudgetVersion @relation(fields: [workspaceId, budgetVersionId], references: [workspaceId, id], onDelete: Cascade)
+}
+model InsuranceNeed {
+  workspaceId String @id
+  status String @default("UNKNOWN")
+  insured String @default("本人")
+  category String?
+  dataJson String @default("{}")
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+model InvestmentNeed {
+  workspaceId String @id
+  assetId String?
+  decisionId String?
+  category String?
+  dataJson String @default("{}")
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+model BalanceObservation {
+  id String @id @default(cuid())
+  workspaceId String
+  entityType String
+  entityId String
+  amountMinor BigInt?
+  currency String @default("CNY")
+  observedOn String
+  source String
+  confirmed Boolean @default(false)
+  reviewId String?
+  observationKey String @unique
+  createdAt DateTime @default(now())
+  @@index([workspaceId, entityType, entityId, observedOn])
+}
+model RecordRevision {
+  id String @id @default(cuid())
+  workspaceId String
+  entityType String
+  entityId String
+  revision Int
+  dataJson String
+  reason String
+  source String @default("USER")
+  createdAt DateTime @default(now())
+  @@index([workspaceId, entityType, entityId])
+}
+model BusinessDraft {
+  id String @id @default(cuid())
+  workspaceId String
+  kind String
+  entityId String
+  version Int @default(1)
+  sourceSignature String
+  dataJson String
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId, kind, entityId])
+}
+model CarEvaluationRecord {
+  id String @id @default(cuid())
+  workspaceId String
+  decisionId String
+  decisionVersion Int
+  sourceSignature String
+  calculatedOn String
+  formulaVersion String
+  inputJson String
+  resultJson String
+  status String @default("COMPLETE")
+  createdAt DateTime @default(now())
+  @@index([workspaceId, decisionId, createdAt])
+  decision CarDecision @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  redLineChecks RedLineCheck[]
+  @@unique([workspaceId, id])
+}
+model DecisionReason {
+  id String @id @default(cuid())
+  workspaceId String
+  planVersionId String
+  category String
+  userText String?
+  assetId String?
+  sourceId String?
+  evidenceSource String
+  createdAt DateTime @default(now())
+  @@index([workspaceId, planVersionId])
+  plan CarPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  asset Asset? @relation(fields: [workspaceId, assetId], references: [workspaceId, id], onDelete: NoAction)
+  source DecisionReason? @relation("ReasonInheritance", fields: [workspaceId, sourceId], references: [workspaceId, id], onDelete: NoAction, onUpdate: NoAction)
+  inherited DecisionReason[] @relation("ReasonInheritance")
+  @@unique([workspaceId, id])
+}
+model DecisionConstraint {
+  id String @id @default(cuid())
+  workspaceId String
+  decisionId String?
+  scope String @default("DECISION")
+  recordKind String @default("CURRENT")
+  planVersionId String?
+  type String
+  operator String
+  thresholdValue BigInt?
+  unit String?
+  currency String?
+  assetId String?
+  goalId String?
+  userText String
+  status String @default("ACTIVE")
+  checkScope String @default("BOTH")
+  confirmedAt DateTime?
+  sourceId String?
+  memoryId String?
+  supersededById String?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, recordKind, scope, decisionId, status])
+  plan CarPlanVersion? @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  decision CarDecision? @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  asset Asset? @relation(fields: [workspaceId, assetId], references: [workspaceId, id], onDelete: NoAction)
+  goal Goal? @relation(fields: [workspaceId, goalId], references: [workspaceId, id], onDelete: NoAction)
+  source DecisionConstraint? @relation("ConstraintInheritance", fields: [workspaceId, sourceId], references: [workspaceId, id], onDelete: NoAction, onUpdate: NoAction)
+  inherited DecisionConstraint[] @relation("ConstraintInheritance")
+  supersededBy DecisionConstraint? @relation("ConstraintReplacement", fields: [workspaceId, supersededById], references: [workspaceId, id], onDelete: NoAction, onUpdate: NoAction)
+  supersedes DecisionConstraint[] @relation("ConstraintReplacement")
+  checks RedLineCheck[]
+  @@unique([workspaceId, id])
+}
+model PlanAssumption {
+  id String @id @default(cuid())
+  workspaceId String
+  planVersionId String
+  category String
+  content String
+  checkType String
+  rule String
+  expectedValue BigInt?
+  currency String?
+  dueOn String?
+  referenceId String?
+  sourceId String?
+  sourceJson String
+  lifecycle String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  @@index([workspaceId, planVersionId, lifecycle])
+  plan CarPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  source PlanAssumption? @relation("AssumptionInheritance", fields: [workspaceId, sourceId], references: [workspaceId, id], onDelete: NoAction, onUpdate: NoAction)
+  inherited PlanAssumption[] @relation("AssumptionInheritance")
+  verifications AssumptionVerification[]
+  @@unique([workspaceId, id])
+}
+model AssumptionVerification {
+  id String @id @default(cuid())
+  workspaceId String
+  assumptionId String
+  reviewId String?
+  period String
+  revision Int @default(1)
+  status String @default("PENDING")
+  actualValue BigInt?
+  occurredOn String?
+  evidence String?
+  verifiedBy String?
+  verifiedAt DateTime?
+  historyJson String @default("[]")
+  createdAt DateTime @default(now())
+  @@unique([assumptionId, period])
+  @@index([workspaceId, status, period])
+  assumption PlanAssumption @relation(fields: [workspaceId, assumptionId], references: [workspaceId, id], onDelete: Cascade)
+  review CarMonthlyReview? @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
+model RedLineCheck {
+  id String @id @default(cuid())
+  workspaceId String
+  constraintId String
+  evaluationId String?
+  professionalEvaluationId String?
+  candidateKey String
+  result String
+  detailJson String
+  ruleVersion String @default("redline-v1")
+  createdAt DateTime @default(now())
+  @@unique([evaluationId, candidateKey, constraintId])
+  @@unique([professionalEvaluationId, candidateKey, constraintId])
+  @@index([workspaceId, createdAt])
+  constraint DecisionConstraint @relation(fields: [workspaceId, constraintId], references: [workspaceId, id], onDelete: Cascade)
+  evaluation CarEvaluationRecord? @relation(fields: [workspaceId, evaluationId], references: [workspaceId, id], onDelete: Cascade)
+  professionalEvaluation ProfessionalEvaluation? @relation(fields: [workspaceId, professionalEvaluationId], references: [workspaceId, id], onDelete: Cascade)
+}
+model Product {
+  id String @id
+  name String
+  provider String
+  category String
+  createdAt DateTime @default(now())
+  versions ProductVersion[]
+}
+model ProductVersion {
+  id String @id @default(cuid())
+  productId String
+  version String
+  status String @default("DRAFT")
+  dataJson String
+  ageMin Int?
+  ageMax Int?
+  riskLevel Int?
+  termMonths Int?
+  redemptionDays Int?
+  minimumMinor BigInt?
+  reviewedOn String
+  createdAt DateTime @default(now())
+  publishedAt DateTime?
+  @@unique([productId, version])
+  @@index([productId, status, createdAt])
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sources ProductSource[]
+  selectionLinks ProductSelectionVersion[]
+  policies InsurancePolicy[]
+  holdings HoldingDetail[]
+}
+model ProductSource {
+  id String @id @default(cuid())
+  productVersionId String
+  url String
+  publicationText String
+  reviewedOn String
+  note String?
+  contentHash String?
+  version ProductVersion @relation(fields: [productVersionId], references: [id], onDelete: Cascade)
+}
+model ProductSelectionVersion {
+  selectionId String @id
+  workspaceId String
+  productVersionId String
+  @@unique([workspaceId, selectionId])
+  selection ProductSelection @relation(fields: [workspaceId, selectionId], references: [workspaceId, id], onDelete: Cascade)
+  productVersion ProductVersion @relation(fields: [productVersionId], references: [id], onDelete: Restrict)
+}
+model SourceEvidence {
+  id String @id @default(cuid())
+  workspaceId String
+  entityType String
+  entityId String
+  sourceType String
+  extractedAt DateTime?
+  reviewedAt DateTime?
+  note String?
+  pageHash String?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, entityType, entityId])
+}
+model ImportBatch {
+  id String @id @default(cuid())
+  workspaceId String
+  requestKey String
+  payloadHash String
+  source String
+  rowIdsJson String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, requestKey])
+}
+model DataDependency {
+  id String @id @default(cuid())
+  workspaceId String
+  ownerType String
+  ownerId String
+  sourceType String
+  sourceId String
+  sourceVersion Int?
+  @@unique([workspaceId, ownerType, ownerId, sourceType, sourceId])
+  @@index([workspaceId, sourceType, sourceId])
+}
+model DeletionJob {
+  id String @id @default(cuid())
+  workspaceId String
+  entityType String
+  entityId String
+  status String @default("PENDING")
+  phase String @default("DATABASE")
+  error String?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+  @@index([workspaceId, status])
+}
+model MigrationIssue {
+  id String @id @default(cuid())
+  workspaceId String
+  entityType String
+  entityId String
+  code String
+  status String @default("OPEN")
+  note String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, entityType, entityId, code])
+}
+
+
+model GoalDecision {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  goalId String?
+  legacyDecisionId String? @unique
+  title String
+  status String @default("DRAFT")
+  version Int @default(1)
+  factsJson String @default("{}")
+  activePlanId String?
+  evaluations GoalEvaluationRecord[]
+  plans GoalPlanVersion[]
+  reviews GoalReview[]
+  reservations GoalFundingReservation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId, id])
+  @@index([workspaceId, updatedAt])
+}
+model GoalEvaluationRecord {
+  id String @id @default(cuid())
+  workspaceId String
+  decisionId String
+  decision GoalDecision @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  decisionVersion Int
+  sourceSignature String
+  calculatedOn String
+  capability String
+  formulaVersion String
+  inputJson String
+  resultJson String
+  status String
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, id])
+  @@index([workspaceId, decisionId])
+}
+model GoalPlanVersion {
+  id String @id @default(cuid())
+  workspaceId String
+  decisionId String
+  decision GoalDecision @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  evaluationId String?
+  legacyPlanId String? @unique
+  version Int
+  status String @default("ACTIVE")
+  snapshotJson String @default("{}")
+  createdAt DateTime @default(now())
+  @@unique([decisionId, version])
+  @@unique([workspaceId, id])
+}
+model GoalFundingReservation {
+  id String @id @default(cuid())
+  workspaceId String
+  decisionId String
+  decision GoalDecision @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  assetId String
+  amountMinor BigInt
+  createdAt DateTime @default(now())
+  @@unique([decisionId, assetId])
+  @@index([workspaceId, assetId])
+}
+model GoalReview {
+  id String @id @default(cuid())
+  workspaceId String
+  decisionId String
+  decision GoalDecision @relation(fields: [workspaceId, decisionId], references: [workspaceId, id], onDelete: Cascade)
+  period String
+  version Int @default(1)
+  factsJson String
+  resultJson String
+  createdAt DateTime @default(now())
+  @@unique([decisionId, period])
+}
+model AgentRun {
+  id String @id @default(cuid())
+  workspaceId String
+  sessionId String
+  session AgentSession @relation(fields: [workspaceId, sessionId], references: [workspaceId, id], onDelete: Cascade)
+  parentRunId String?
+  agentKey String
+  mode String @default("USER_DIALOGUE")
+  requestId String
+  status String @default("QUEUED")
+  sourceSignature String
+  promptVersion String
+  model String
+  inputJson String
+  resultJson String @default("{}")
+  errorCode String?
+  leaseUntil DateTime?
+  proposals AgentProposal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+  @@unique([sessionId, requestId])
+  @@unique([workspaceId, id])
+  @@index([workspaceId, status])
+}
+model AgentProposal {
+  id String @id @default(cuid())
+  workspaceId String
+  runId String
+  run AgentRun @relation(fields: [workspaceId, runId], references: [workspaceId, id], onDelete: Cascade)
+  operation String
+  version Int @default(1)
+  sourceSignature String
+  dataJson String
+  title String
+  status String @default("PENDING")
+  resultJson String @default("{}")
+  createdAt DateTime @default(now())
+  confirmedAt DateTime?
+  @@unique([workspaceId, id])
+  @@index([workspaceId, status])
+}
+
+// PaperAccount adds: experiment PaperStrategyExperiment?
+model PaperStrategyExperiment {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String @unique
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  name String
+  status String @default("DRAFT")
+  version Int @default(0)
+  stopReason String @default("")
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  stoppedAt DateTime?
+  strategies PaperStrategyVersion[]
+  pools PaperStockPoolVersion[]
+  authorizations PaperStrategyAuthorization[]
+  runs PaperStrategyRun[]
+  @@unique([workspaceId,id])
+  @@index([workspaceId,status])
+  @@unique([workspaceId, accountId])
+}
+model PaperStrategyVersion {
+  id String @id @default(cuid())
+  workspaceId String
+  experimentId String
+  experiment PaperStrategyExperiment @relation(fields: [workspaceId,experimentId], references: [workspaceId,id], onDelete: Cascade)
+  version Int
+  status String @default("DRAFT")
+  originalText String
+  strategyJson String
+  missingJson String @default("[]")
+  model String
+  promptVersion String
+  createdAt DateTime @default(now())
+  confirmedAt DateTime?
+  authorizations PaperStrategyAuthorization[]
+  runs PaperStrategyRun[]
+  @@unique([workspaceId,id])
+  @@unique([experimentId,version])
+}
+model PaperStockPoolVersion {
+  id String @id @default(cuid())
+  workspaceId String
+  experimentId String
+  experiment PaperStrategyExperiment @relation(fields: [workspaceId,experimentId], references: [workspaceId,id], onDelete: Cascade)
+  version Int
+  instrumentIdsJson String
+  confirmedAt DateTime @default(now())
+  authorizations PaperStrategyAuthorization[]
+  runs PaperStrategyRun[]
+  @@unique([workspaceId,id])
+  @@unique([experimentId,version])
+}
+model PaperStrategyAuthorization {
+  id String @id @default(cuid())
+  workspaceId String
+  experimentId String
+  experiment PaperStrategyExperiment @relation(fields: [workspaceId,experimentId], references: [workspaceId,id], onDelete: Cascade)
+  strategyId String
+  strategy PaperStrategyVersion @relation(fields: [workspaceId,strategyId], references: [workspaceId,id])
+  stockPoolId String
+  stockPool PaperStockPoolVersion @relation(fields: [workspaceId,stockPoolId], references: [workspaceId,id])
+  status String @default("ACTIVE")
+  limitsJson String
+  expiresAt DateTime
+  confirmedAt DateTime @default(now())
+  revokedAt DateTime?
+  runs PaperStrategyRun[]
+  @@unique([workspaceId,id])
+}
+model PaperStrategyRun {
+  id String @id @default(cuid())
+  workspaceId String
+  experimentId String
+  experiment PaperStrategyExperiment @relation(fields: [workspaceId,experimentId], references: [workspaceId,id], onDelete: Cascade)
+  authorizationId String
+  authorization PaperStrategyAuthorization @relation(fields: [workspaceId,authorizationId], references: [workspaceId,id])
+  strategyId String
+  strategy PaperStrategyVersion @relation(fields: [workspaceId,strategyId], references: [workspaceId,id])
+  stockPoolId String
+  stockPool PaperStockPoolVersion @relation(fields: [workspaceId,stockPoolId], references: [workspaceId,id])
+  slot String
+  experimentVersion Int
+  accountVersion Int
+  model String
+  status String @default("RUNNING")
+  inputJson String
+  decisionJson String @default("{}")
+  riskJson String @default("{}")
+  orderId String? @unique
+  order PaperOrder? @relation(fields: [workspaceId, orderId], references: [workspaceId, id])
+  reason String @default("")
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  @@unique([experimentId,slot])
+  @@unique([workspaceId,id])
+  @@unique([workspaceId, orderId])
+}
+
+// Add replayDatasets to Workspace; replaySessions and conditions to PaperAccount.
+// Add replayBars and conditions to MarketInstrument; condition PaperCondition? to PaperOrder.
+model PaperReplayDataset {
+  id String @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  resolution String
+  source String
+  sourceFetchedAt DateTime
+  hash String
+  sourceReviewJson String
+  calendarJson String
+  fallbackReason String @default("")
+  modelVersion String @default("kline-v1-participation-1pct")
+  createdAt DateTime @default(now())
+  bars PaperReplayBar[]
+  sessions PaperReplaySession[]
+  @@unique([workspaceId, id])
+  @@unique([workspaceId, hash])
+}
+model PaperReplayBar {
+  id String @id @default(cuid())
+  workspaceId String
+  datasetId String
+  dataset PaperReplayDataset @relation(fields: [workspaceId, datasetId], references: [workspaceId, id], onDelete: Cascade)
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  closeAt DateTime
+  openMinor BigInt
+  highMinor BigInt
+  lowMinor BigInt
+  closeMinor BigInt
+  previousMinor BigInt
+  lowerMinor BigInt
+  upperMinor BigInt
+  volumeShares Int
+  status String
+  eventCoverage Boolean @default(false)
+  evidence String
+  @@unique([datasetId, instrumentId, closeAt])
+  @@index([datasetId, closeAt])
+}
+model PaperReplaySession {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String @unique
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  datasetId String
+  dataset PaperReplayDataset @relation(fields: [workspaceId, datasetId], references: [workspaceId, id])
+  clock DateTime
+  status String @default("PAUSED")
+  version Int @default(0)
+  warning String @default("")
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, id])
+  @@unique([workspaceId, accountId])
+}
+model PaperCondition {
+  id String @id @default(cuid())
+  workspaceId String
+  accountId String
+  account PaperAccount @relation(fields: [workspaceId, accountId], references: [workspaceId, id], onDelete: Cascade)
+  instrumentId String
+  instrument MarketInstrument @relation(fields: [instrumentId], references: [id])
+  kind String
+  triggerMinor BigInt
+  limitMinor BigInt
+  quantity Int
+  frozenMinor BigInt @default(0)
+  day String
+  ruleId String
+  reason String @default("")
+  status String @default("WAITING")
+  key String
+  signature String
+  childOrderId String? @unique
+  childOrder PaperOrder? @relation(fields: [workspaceId, childOrderId], references: [workspaceId, id])
+  createdAt DateTime @default(now())
+  triggeredAt DateTime?
+  closedAt DateTime?
+  @@unique([workspaceId, id])
+  @@unique([workspaceId, key])
+  @@index([accountId, status])
+  @@unique([workspaceId, childOrderId])
+}

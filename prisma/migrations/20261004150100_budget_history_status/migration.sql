@@ -1,0 +1,5 @@
+ALTER TABLE BudgetVersion ADD COLUMN status TEXT NOT NULL DEFAULT 'ACTIVE';
+DROP TRIGGER BudgetVersion_no_overlap_INSERT;
+DROP TRIGGER BudgetVersion_no_overlap_UPDATE;
+CREATE TRIGGER BudgetVersion_no_overlap_INSERT BEFORE INSERT ON BudgetVersion WHEN NEW.status='ACTIVE' AND ((NEW.validTo IS NOT NULL AND NEW.validTo<=NEW.validFrom) OR EXISTS(SELECT 1 FROM BudgetVersion b WHERE b.workspaceId=NEW.workspaceId AND b.status='ACTIVE' AND b.id<>NEW.id AND b.validFrom<COALESCE(NEW.validTo,'9999-12-31') AND NEW.validFrom<COALESCE(b.validTo,'9999-12-31'))) BEGIN SELECT RAISE(ABORT,'budget intervals overlap'); END;
+CREATE TRIGGER BudgetVersion_no_overlap_UPDATE BEFORE UPDATE ON BudgetVersion WHEN NEW.status='ACTIVE' AND ((NEW.validTo IS NOT NULL AND NEW.validTo<=NEW.validFrom) OR EXISTS(SELECT 1 FROM BudgetVersion b WHERE b.workspaceId=NEW.workspaceId AND b.status='ACTIVE' AND b.id<>NEW.id AND b.validFrom<COALESCE(NEW.validTo,'9999-12-31') AND NEW.validFrom<COALESCE(b.validTo,'9999-12-31'))) BEGIN SELECT RAISE(ABORT,'budget intervals overlap'); END;

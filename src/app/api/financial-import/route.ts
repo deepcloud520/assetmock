@@ -1,0 +1,16 @@
+import { extractFromImages, extractFromText } from "@/server/financial-import";
+import { apiError, assertWorkspace, getWorkspaceId } from "@/server/portfolio";
+
+export async function POST(request: Request) {
+  try {
+    const workspaceId = getWorkspaceId(request);
+    await assertWorkspace(workspaceId);
+    const form = await request.formData();
+    const mode = form.get("mode");
+    if (mode === "TEXT") return Response.json(await extractFromText(form.get("text")));
+    if (mode === "IMAGE") return Response.json(await extractFromImages(form.getAll("images").filter((value): value is File => value instanceof File)));
+    return Response.json({ error: "请选择文字或图片识别" }, { status: 422 });
+  } catch (error) {
+    return apiError(error);
+  }
+}

@@ -1,0 +1,10 @@
+-- Stable identities only: original financial snapshots remain their unique content source.
+INSERT INTO "GoalDecision" ("id","workspaceId","goalId","legacyDecisionId","title","status","version","factsJson","createdAt","updatedAt")
+SELECT 'legacy:'||"id","workspaceId","goalId","id",COALESCE(json_extract("factsJson",'$.purpose'),'现有目标决策'),CASE WHEN "status"='PURCHASED' THEN 'COMPLETED' ELSE "status" END,"version",'{}',"createdAt","updatedAt" FROM "CarDecision";
+INSERT INTO "GoalPlanVersion" ("id","workspaceId","decisionId","legacyPlanId","version","status","snapshotJson","createdAt")
+SELECT 'legacy:'||p."id",d."workspaceId",'legacy:'||p."decisionId",p."id",p."version",CASE WHEN d."activePlanId"=p."id" THEN 'ACTIVE' ELSE 'SUPERSEDED' END,'{}',p."adoptedAt" FROM "CarPlanVersion" p JOIN "CarDecision" d ON d."id"=p."decisionId";
+UPDATE "GoalDecision" SET "activePlanId"=(SELECT 'legacy:'||"activePlanId" FROM "CarDecision" WHERE "id"="GoalDecision"."legacyDecisionId" AND "activePlanId" IS NOT NULL);
+UPDATE "AgentSession" SET "agentKey"='GOAL' WHERE "kind"='GOAL_DISCOVERY' AND "agentKey" IS NULL;
+CREATE TRIGGER "goal_active_plan_insert" BEFORE INSERT ON "GoalDecision" WHEN NEW."activePlanId" IS NOT NULL AND NOT EXISTS(SELECT 1 FROM "GoalPlanVersion" WHERE "id"=NEW."activePlanId" AND "decisionId"=NEW."id" AND "workspaceId"=NEW."workspaceId") BEGIN SELECT RAISE(ABORT,'Invalid active goal plan'); END;
+CREATE TRIGGER "goal_active_plan_update" BEFORE UPDATE ON "GoalDecision" WHEN NEW."activePlanId" IS NOT NULL AND NOT EXISTS(SELECT 1 FROM "GoalPlanVersion" WHERE "id"=NEW."activePlanId" AND "decisionId"=NEW."id" AND "workspaceId"=NEW."workspaceId") BEGIN SELECT RAISE(ABORT,'Invalid active goal plan'); END;
+CREATE TRIGGER "goal_legacy_plan_insert" BEFORE INSERT ON "GoalPlanVersion" WHEN NEW."legacyPlanId" IS NOT NULL AND NOT EXISTS(SELECT 1 FROM "CarPlanVersion" p JOIN "GoalDecision" d ON d."legacyDecisionId"=p."decisionId" WHERE p."id"=NEW."legacyPlanId" AND d."id"=NEW."decisionId" AND d."workspaceId"=NEW."workspaceId") BEGIN SELECT RAISE(ABORT,'Invalid legacy plan reference'); END;
