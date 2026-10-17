@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
+import { runPythonSync } from "../../../scripts/lib/runtime.cjs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_RULES, json } from "../../domain/paper-trading";
@@ -18,7 +18,7 @@ beforeAll(async () => {
   process.env.DATABASE_URL = `file:${path}`;
   const names = (await readdir("prisma/migrations")).filter(n => /^\d/.test(n)).sort();
   const sql = (await Promise.all(names.map(n => readFile(`prisma/migrations/${n}/migration.sql`, "utf8")))).join("\n");
-  execFileSync("python3", ["-c", "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", path], { input: sql });
+  runPythonSync("import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", [path], { input: sql });
   db = new PrismaClient({ datasourceUrl: `file:${path}` });
   await db.paperRuleVersion.create({ data: { id: "insights-test-only", configJson: json({ ...DEFAULT_RULES, qualified: true, qualifiedUntil: "2026-12-31", evidence: "isolated synthetic test evidence" }), source: "test" } });
   await db.marketInstrument.create({ data: { id: "sh600000", name: "测试普通证券", board: "MAIN", source: "test" } });

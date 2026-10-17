@@ -4,41 +4,46 @@
 
 资产、目标、收支、投资、保险五个管家围绕同一份财务底账协作；在「未来规划 → 情景推演」中，用两种付款方式经历同一段随机人生。购车 5 年，购房 30 年。剩余资金只计算现金与投资，房车不计入该指标，负债单列。
 
-## 本机启动
+## 本机启动（Windows / macOS）
 
-使用 Node.js 22。已有 `.env.local` 请保留，不要覆盖密钥。
+首次准备 **Node.js 22**、**Python 3（含标准库 sqlite3）** 和 Git。安装 Python 时将其加入 PATH，并重新打开终端。项目自动检测 `python3`、`python`、Windows 的 `py -3`；有多个解释器时，可在 `.env.local` 设置 `PYTHON_EXECUTABLE` 为可执行文件完整路径，不要附带命令参数。
+
+克隆后，在仓库目录运行：
 
 ```sh
 npm ci --include=dev
-# 首次使用时复制 .env.example 为 .env.local，并填写需要的密钥
-DATABASE_URL=file:./financial-associates.db npm run db:migrate
-npm run dev:all
+npm run dev
 ```
 
-打开 http://127.0.0.1:3000 。`dev:all` 同时运行 Web、撮合 worker、策略 worker；关闭时一并停止。只查看页面可用 `npm run dev`，实时模拟交易需要 worker。生产运行先 `npm run build`，再 `npm run start:all`。应用目前为本机单用户演示，不是公网多用户服务。
+打开 http://127.0.0.1:3000 。无需手动创建数据库文件、执行 SQL 或导入示例。
 
-### 安装与 CSS 构建报错
+启动会依次检查环境、在没有环境配置文件时创建 `.env.local` 模板、生成 Prisma 客户端、初始化数据库／应用迁移、建立或复用独立演示空间，再启动 Web、撮合 worker 和策略 worker。首次打开的新浏览器直接进入带有明显“演示数据”标识的空间；已有浏览器所选工作区保持不变。可以点击「进入个人空间」创建空白底账，演示数据不会混入其中。
 
-克隆或拉取新增依赖后，先运行 `npm ci --include=dev`，安装成功再启动。开发与源码构建需要完整依赖；不要用 `--omit=dev` 代替开发安装，也不要从别的操作系统复制 `node_modules`。
+- API Key 可在自动创建的 `.env.local` 中填写，也可先复制 `.env.example` 再启动；未配置时手动功能仍可使用。已有 `.env` / `.env.local` 不覆盖。
+- 产品库默认 `prisma/financial-associates.db`，由 `DATABASE_URL` 指定；相对路径统一相对于 `prisma`。
+- 游戏库默认 `data/life-simulator.sqlite`，由 `DATABASE_PATH` 指定；相对路径相对于项目根目录。
+- 再次启动保留原数据和已有演示。发现待执行迁移时，先将已有产品库备份到 `.local-data/backups`（可由 `DATABASE_BACKUP_DIR` 配置），校验成功后才迁移。
+- 遇到失败迁移、迁移历史不匹配或无法备份，启动会停止并显示原因，绝不自动 reset。直接退出失败命令后不要继续启动另一份服务。
+- 停止应用用 `Ctrl+C`；Web 和两个 worker 一起退出。同一数据库不允许重复启动实例。
 
-如果看到 `Cannot find module '@tailwindcss/postcss'`，表示 PostCSS 插件未安装或无法加载，字体文件只是触发 CSS 编译的入口。先停止正在运行的开发服务，然后在项目根目录执行（Windows PowerShell、macOS 均可）：
+`npm run setup` 可提前完成初始化；`npm run dev:web` 仅启动网页（仍会初始化），`npm run dev:all` 是完整启动别名。生产运行使用 `npm run build` 后再 `npm start`，同样自动初始化。源码启动／构建需要完整依赖，请保留 `--include=dev`。
+
+### 环境排查
+
+```sh
+npm run doctor
+```
+
+该命令检查 Node.js、构建依赖和可用的 Python 3。缺少 Python 时会在启动前给出安装提示，不会等首页请求才报 `spawn python3 ENOENT`。
+
+如果看到 `Cannot find module '@tailwindcss/postcss'`，先停止开发服务，执行：
 
 ```sh
 npm run repair:install
 npm run dev
 ```
 
-修复命令按锁文件完整重装依赖、清理 `.next` 并检查构建依赖，不删除 `.env.local` 和数据库。安装失败时先处理 npm 的安装错误，不要继续启动。`npm run doctor` 可单独检查 Node.js 与构建依赖。尚未取得修复分支时，也可在停止服务后手动运行：
-
-```sh
-npm ci --include=dev
-node -e "require('node:fs').rmSync('.next', { recursive: true, force: true })"
-npm run dev
-```
-
-- 产品库：`prisma/financial-associates.db`，由 `DATABASE_URL` 指定。
-- 游戏库：`data/life-simulator.sqlite`，由 `DATABASE_PATH` 指定。
-- `npm run db:migrate` 用于新库；已有库停服务后使用 `npm run db:migrate:safe`，先备份并核对业务记录。
+修复命令按锁文件重新安装完整依赖并清理 `.next`，不删除环境配置和数据库。不要跨操作系统复制 `node_modules`。运行时的日常备份失败会在首页显示提醒并允许重试；迁移和恢复前的备份失败则停止相关操作。
 
 ## AI 与搜索配置
 
@@ -48,7 +53,7 @@ npm run dev
 
 ## 演示
 
-点击页面上方「进入独立演示空间」建立虚构底账：126万元现金（含6万元保护资金）、20万元基金、月收入3万元、生活费1.4万元（含4000元租金和500元保费），另有买车、买房目标及合成行情账户。「重置为新演示空间」创建新空间，不覆盖旧数据；可返回原空间。
+首次启动自动建立独立演示空间，也可点击页面上方按钮创建新演示。虚构底账包含：126万元现金（含6万元保护资金）、20万元基金、月收入3万元、生活费1.4万元（含4000元租金和500元保费），另有买车、买房目标及合成行情账户。「重置为新演示空间」创建新空间，不覆盖旧数据；可进入个人空间。
 
 从「目标管家」顶部的「情景推演入口」可直接进入游戏，也可使用「未来规划 → 情景推演」。默认读取当前底账及当前规划目标，先展示来源与排除原因，再由用户确认简化输入。游戏不解除真实资金限制，不把模拟事件记入财务底账。报告需点击保存，游戏进度自动保存。另可选择虚构角色直接体验。
 
@@ -59,6 +64,7 @@ npm run dev
 ## 验证与备份
 
 ```sh
+npm run test:startup        # 干净建库、启动两个worker与网页、备份、重复启动与升级保护
 npm test                    # 独立临时数据库、分组回归，不使用个人库
 npm run test:e2e             # 独立3100端口、临时演示数据库
 npm run typecheck

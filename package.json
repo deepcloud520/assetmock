@@ -9,9 +9,9 @@
     "dev:paper": "node scripts/paper-dev.mjs",
     "paper:worker": "node scripts/paper-dev.mjs --worker-only",
     "paper:probe": "tsc -p tsconfig.paper-worker.json && node .local-data/paper-runtime/scripts/paper-quote-probe.js",
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "node scripts/paper-dev.mjs",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1",
+    "start": "node scripts/paper-dev.mjs --production",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "node scripts/database-init.mjs",
@@ -34,7 +34,15 @@
     "predev:all": "node scripts/check-build-deps.mjs",
     "predev:paper": "node scripts/check-build-deps.mjs",
     "doctor": "node scripts/check-build-deps.mjs",
-    "repair:install": "npm ci --include=dev && node scripts/clean-next.mjs && npm run doctor"
+    "repair:install": "npm ci --include=dev && node scripts/clean-next.mjs && npm run doctor",
+    "dev:web": "node scripts/paper-dev.mjs --web-only",
+    "predev:web": "node scripts/check-build-deps.mjs",
+    "setup": "node scripts/setup.mjs",
+    "presetup": "node scripts/check-build-deps.mjs",
+    "test:startup": "node --test scripts/portable-startup.test.mjs",
+    "prestart": "node scripts/check-build-deps.mjs",
+    "prestart:all": "node scripts/check-build-deps.mjs",
+    "prepaper:worker": "node scripts/check-build-deps.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.19.0",

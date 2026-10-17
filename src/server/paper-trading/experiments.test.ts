@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
-import { execFileSync } from "node:child_process";
+import { runPythonSync } from "../../../scripts/lib/runtime.cjs";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,7 +18,7 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "paper-experiments-")); const file = join(dir, "test.sqlite"); process.env.DATABASE_URL = `file:${file}`;
   const migrations = (await readdir("prisma/migrations")).filter(x => /^\d/.test(x)).sort();
   const sql = (await Promise.all(migrations.map(m => readFile(`prisma/migrations/${m}/migration.sql`, "utf8")))).join("\n");
-  execFileSync("python3", ["-c", "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", file], { input: sql });
+  runPythonSync("import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", [file], { input: sql });
   db = new PrismaClient({ datasourceUrl: `file:${file}` });
   await db.paperRuleVersion.create({ data: { id: "strategy-test", configJson: json({ ...DEFAULT_RULES, qualified: true, qualifiedUntil: "2026-12-31", evidence: "isolated test only" }), source: "synthetic test" } });
   for (const id of ["sh600000", "sz000001", "sh688981", "sz300750"]) {

@@ -39,6 +39,7 @@
     "node_modules",
     ".local-data",
     ".next-e2e",
-    ".next-build"
+    ".next-build",
+    ".next-startup-test"
   ]
 }

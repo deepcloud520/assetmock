@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
+import { runPythonSync } from "../../../scripts/lib/runtime.cjs";
 import { randomUUID } from "node:crypto";
 import { DEFAULT_RULES, fees, json } from "../../domain/paper-trading";
 import { acquireLease, archiveAccount, cancelOrder, createAccount, matchOrders, overview, previewOrder, reconcile, submitOrder } from "./service";
@@ -18,7 +18,7 @@ beforeAll(async () => {
   process.env.DATABASE_URL = `file:${file}`;
   const migrations = (await readdir("prisma/migrations")).filter(x => /^\d/.test(x)).sort();
   const sql = (await Promise.all(migrations.map(m => readFile(`prisma/migrations/${m}/migration.sql`, "utf8")))).join("\n");
-  execFileSync("python3", ["-c", "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", file], { input: sql });
+  runPythonSync("import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", [file], { input: sql });
   db = new PrismaClient({ datasourceUrl: `file:${file}` });
   await db.paperRuleVersion.create({ data: { id: "verified-test-only", configJson: json({ ...DEFAULT_RULES, qualified: true, qualifiedUntil: "2026-12-31", evidence: "isolated synthetic test; not live qualification" }), source: "synthetic test" } });
   for (const symbol of ["sh600000", "sz300750", "sh688981"]) {
@@ -172,7 +172,7 @@ describe("isolated paper trading ledger", () => {
   it("restores a consistent isolated copy including order history and cash ledger", async () => {
     await resetMarket(); await order("BUY", 100); await match(later(2));
     const target = join(dir, "restore.sqlite");
-    execFileSync("python3", ["-c", "import sqlite3,sys;s=sqlite3.connect(sys.argv[1]);d=sqlite3.connect(sys.argv[2]);s.backup(d);d.close();s.close()", join(dir, "test.sqlite"), target]);
+    runPythonSync("import sqlite3,sys;s=sqlite3.connect(sys.argv[1]);d=sqlite3.connect(sys.argv[2]);s.backup(d);d.close();s.close()", [join(dir, "test.sqlite"), target]);
     const recovered = new PrismaClient({ datasourceUrl: `file:${target}` });
     expect((await recovered.paperAccount.findUniqueOrThrow({ where: { id: accountId } })).cashMinor).toBe((await db.paperAccount.findUniqueOrThrow({ where: { id: accountId } })).cashMinor);
     expect(await reconcile(recovered, accountId)).toEqual([]);
