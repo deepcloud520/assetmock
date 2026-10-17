@@ -32,7 +32,7 @@ export async function reconcileCarDependencies(tx: Prisma.TransactionClient, wor
         patch.sourcesConfirmed = false;
         patch.sources = f.sources.filter((s) => latest.assets.some((a) => a.id === s.assetId)).map((s) => {
           const asset = latest.assets.find((a) => a.id === s.assetId)!;
-          return { ...s, amountMinor: (BigInt(s.amountMinor) > BigInt(asset.currentValueMinor) ? asset.currentValueMinor : s.amountMinor), use: asset.goalId || !asset.isAdjustable ? false : s.use };
+          return { ...s, amountMinor: (BigInt(s.amountMinor) > BigInt(asset.currentValueMinor) ? asset.currentValueMinor : s.amountMinor), use: (asset.goalId && asset.goalId !== row.goalId) || !asset.isAdjustable ? false : s.use };
         });
       }
       const memories = await tx.planningMemory.findMany({ where: { workspaceId, status: "ACTIVE", nature: "HARD" } });

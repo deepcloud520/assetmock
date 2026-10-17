@@ -9,33 +9,29 @@ const goals = [
   { id: "goal-break", name: "半年后职业休整", type: "CAREER_BREAK", targetAmountMinor: "12000000", targetDate: "2027-03-01", preparedAmountMinor: "3000000", monthlyContributionMinor: "0", priority: 2, isFlexible: true },
 ];
 
-function createdGoals(assessmentCurrent: boolean) {
+function createdGoals() {
   return <CreatedGoalsPanel
     goals={goals}
     planningGoalId="goal-home"
-    assessmentCurrent={assessmentCurrent}
-    canAssess
     onEdit={() => {}}
     onDelete={() => {}}
-    onStartPlanning={() => {}}
-    onStartAssessment={() => {}}
   />;
 }
 
 describe("goal home planning entry", () => {
-  it("routes the selected goal toward assessment when no current assessment exists", () => {
-    const html = render(createdGoals(false));
-    expect(html).toContain("开始现状评估");
-    expect(html).toContain("开始规划");
-    expect(html).toContain("开始现状评估：三年后购房");
-    expect(html).toContain("编辑目标：三年后购房");
-    expect(html).toContain("删除目标：三年后购房");
-  });
-
-  it("offers to continue the selected goal after assessment is current", () => {
-    const html = render(createdGoals(true));
-    expect(html).toContain("继续规划");
-    expect(html).toContain("继续规划：三年后购房");
+  it("shows saved goals and progress without planning actions", () => {
+    const html = render(createdGoals());
+    expect(html).not.toContain("开始现状评估");
+    expect(html).not.toContain("开始规划");
+    expect(html).not.toContain("继续规划");
+    for (const goal of goals) {
+      expect(html).toContain(goal.name);
+      expect(html).toContain(`编辑目标：${goal.name}`);
+      expect(html).toContain(`删除目标：${goal.name}`);
+      expect(html).toContain(`${goal.name}准备进度`);
+    }
+    expect(html).toContain("20%");
+    expect(html).toContain("25%");
   });
 
   it("keeps creation separate from the saved goal list", () => {

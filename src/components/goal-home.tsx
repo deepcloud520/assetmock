@@ -191,30 +191,24 @@ export function GoalHome({ onViewExecution, onStartCarPlanning, workspaceId, goa
   </>;
 }
 
-export function CreatedGoalsPanel({ onOpenGoalManager, goals, planningGoalId, assessmentCurrent, canAssess, onEdit, onDelete, onStartPlanning, onStartAssessment }: {
+export function CreatedGoalsPanel({ onOpenGoalManager, goals, planningGoalId, onEdit, onDelete }: {
   onOpenGoalManager?: () => void;
   goals: GoalSummary[];
   planningGoalId: string | null;
-  assessmentCurrent: boolean;
-  canAssess: boolean;
   onEdit: (goal: GoalSummary) => void;
   onDelete: (goal: GoalSummary) => void;
-  onStartPlanning: (goal: GoalSummary) => void;
-  onStartAssessment: () => void;
 }) {
   return <section className="home-created-goals" aria-labelledby="created-goals-title">
     <div className="goal-list-section"><div className="created-goals-heading"><div className="created-goals-title"><h2 id="created-goals-title" className="text-sm font-semibold">已创建目标</h2><span className="text-xs tabular-nums text-slate-400">{goals.length}</span></div>{onOpenGoalManager && <button type="button" className="goal-manager-link" onClick={onOpenGoalManager}><MessageCircle size={16} />与目标管家聊聊</button>}</div>
       <div className="goal-list mt-3">
         {goals.map((goal) => {
           const isPlanningGoal = planningGoalId === goal.id;
-          const planningLabel = isPlanningGoal ? assessmentCurrent ? "继续规划" : "开始现状评估" : "开始规划";
           const target = BigInt(goal.targetAmountMinor);
           const prepared = BigInt(goal.preparedAmountMinor);
           const progress = target > 0n ? Number((prepared * 100n) / target) : 0;
           return <article key={goal.id} className={`goal-list-item ${isPlanningGoal ? "goal-list-item-active" : ""}`}>
             <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold">{goal.name}</p><p className="mt-1 text-xs text-slate-500">{money(goal.targetAmountMinor)} · {new Date(goal.targetDate).toLocaleDateString("zh-CN", { year: "numeric", month: "short" })}</p></div><div className="flex shrink-0"><button className="icon-button" title="编辑目标" aria-label={`编辑目标：${goal.name}`} onClick={() => onEdit(goal)}><Pencil size={14} /></button><button className="icon-button text-rose-600 hover:bg-rose-50" title="删除目标" aria-label={`删除目标：${goal.name}`} onClick={() => onDelete(goal)}><Trash2 size={14} /></button></div></div>
             <div className="goal-progress"><div className="goal-progress-copy"><span>已准备 {money(goal.preparedAmountMinor)}</span><strong>{Math.max(0, progress)}%</strong></div><div className="goal-progress-track" role="progressbar" aria-label={`${goal.name}准备进度`} aria-valuenow={Math.max(0, Math.min(progress, 100))} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${Math.max(0, Math.min(progress, 100))}%` }} /></div></div>
-            <button type="button" className="goal-plan-button" aria-label={`${planningLabel}：${goal.name}`} disabled={isPlanningGoal && !assessmentCurrent && !canAssess} onClick={() => isPlanningGoal && !assessmentCurrent ? onStartAssessment() : onStartPlanning(goal)}><Target size={14} />{planningLabel}<ArrowRight className="ml-auto" size={14} /></button>
           </article>;
         })}
         {!goals.length && <div className="goal-empty-state"><Target size={20} /><p>你的目标会显示在这里</p></div>}

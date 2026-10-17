@@ -37,7 +37,7 @@ describe("wealth overview layout", () => {
     expect(html).not.toContain("Infinity");
   });
 
-  it.each([1, 8])("preserves all %i goals and their editing/planning controls", (count) => {
+  it.each([1, 8])("preserves all %i goals and editing controls without planning buttons", (count) => {
     const goals = Array.from({ length: count }, (_, index) => ({
       id: `goal-${index}`, name: `目标${index + 1}`, type: "OTHER",
       targetAmountMinor: "100000000", preparedAmountMinor: "2000000",
@@ -49,7 +49,7 @@ describe("wealth overview layout", () => {
     for (const goal of goals) {
       expect(html).toContain(`编辑目标：${goal.name}`);
       expect(html).toContain(`删除目标：${goal.name}`);
-      expect(html).toContain(`开始规划：${goal.name}`);
+      expect(html).not.toContain(`开始规划：${goal.name}`);
     }
   });
 

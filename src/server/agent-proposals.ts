@@ -1,3 +1,4 @@
+import { saveGoalFunding } from "./goal-funding";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ApiError, serialize } from "./portfolio";
@@ -26,7 +27,9 @@ export async function confirmAgentProposal(workspaceId:string,id:string,raw:unkn
   const claim=await tx.agentProposal.updateMany({where:{id,workspaceId,status:"PENDING",version:input.version},data:{status:"COMMITTING"}});
   if(!claim.count)throw new ApiError("确认卡已变化",409);
   const data=JSON.parse(p.dataJson); let result:unknown;
-  if(p.operation==="MANAGER"){
+  if(p.operation==="CAR_FUNDING_DRAFT"){
+   result=await saveGoalFunding(tx,workspaceId,prior.run.sessionId,data.planning);
+  }else if(p.operation==="MANAGER"){
    await applyManagerCommand(tx,workspaceId,data);result={command:data.command,saved:true};
   }else if(p.operation==="CONSTRAINT"){
    result=await saveConstraint(tx,workspaceId,data);

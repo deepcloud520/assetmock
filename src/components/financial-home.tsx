@@ -32,7 +32,7 @@ async function jsonRequest<T>(path: string, workspaceId: string, options: Reques
   return body;
 }
 
-export function FinancialHome({ onOpenGoalManager, onViewExecution, onStartCarPlanning, workspaceId, revision, profile, assets, liabilities, goals, multiGoalConsentAt, saving, assessment, assessmentStale, assessmentLoading, assessmentFocusRequest, planningGoal, assessmentCurrent, onAssess, onViewReport, onStartPlanning, onEdit, onDelete, onSave, onSaveProfile, onDataChange }: {
+export function FinancialHome({ onOpenGoalManager, onViewExecution, onStartCarPlanning, workspaceId, revision, profile, assets, liabilities, goals, multiGoalConsentAt, saving, assessment, assessmentStale, assessmentLoading, assessmentFocusRequest, planningGoal, assessmentCurrent, onAssess, onViewReport, onEdit, onDelete, onSave, onSaveProfile, onDataChange }: {
   onOpenGoalManager?: () => void;
   onViewExecution?: () => void;
   onStartCarPlanning?: (intent?: string) => void;
@@ -93,7 +93,7 @@ export function FinancialHome({ onOpenGoalManager, onViewExecution, onStartCarPl
           </section>
         </div>
       </section>
-      <CreatedGoalsPanel onOpenGoalManager={onOpenGoalManager} goals={goals} planningGoalId={planningGoal?.id ?? null} assessmentCurrent={assessmentCurrent} canAssess={hasRecords && !assessmentLoading} onEdit={(goal) => onEdit("goal", goal)} onDelete={(goal) => onDelete("goal", goal)} onStartPlanning={onStartPlanning} onStartAssessment={() => setConfirmingAssessment(true)} />
+      <CreatedGoalsPanel onOpenGoalManager={onOpenGoalManager} goals={goals} planningGoalId={planningGoal?.id ?? null} onEdit={(goal) => onEdit("goal", goal)} onDelete={(goal) => onDelete("goal", goal)} />
       {!onOpenGoalManager && <GoalHome onViewExecution={onViewExecution} onStartCarPlanning={onStartCarPlanning} workspaceId={workspaceId} goals={goals} multiGoalConsentAt={multiGoalConsentAt} onDataChange={onDataChange} />}
     </div>
     <div className="financial-ledger" aria-label="当前财务底账">

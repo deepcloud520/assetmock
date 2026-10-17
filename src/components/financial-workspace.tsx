@@ -1,4 +1,5 @@
 "use client";
+import { GoalFundingWorkspace } from "./goal-funding-workspace";
 import { DemoSwitch } from "./demo-switch";
 import { DataManagementView, clearBusinessCache } from "./data-management-view";
 
@@ -107,6 +108,7 @@ type Resource = Asset | Liability | Goal;
 type ResourceKind = "asset" | "liability" | "goal";
 type View = "agent" | "bookkeeping" | "assets" | "liabilities" | "goals" | "diagnosis" | "planning" | "execution" | "cashflow-manager" | "investment-assistant" | "insurance-manager" | "data-management";
 
+const UNIFIED_CAR_PLANNING = process.env.NEXT_PUBLIC_GOAL_FUNDING_ENABLED === "1";
 const STORAGE_KEY = "financial_associate_workspace_id";
 const PLANNING_GOAL_STORAGE_PREFIX = "financial_associate_planning_goal_";
 const TOMORROW_DATE = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
@@ -553,12 +555,21 @@ export function FinancialWorkspace() {
           {view === "agent" && <ManagerSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpen={(manager) => setView(manager === "CASHFLOW" ? "cashflow-manager" : manager === "INSURANCE" ? "insurance-manager" : "investment-assistant")} onCar={() => setView("execution")} onExecution={() => setView("execution")} />}
           {["cashflow-manager", "insurance-manager", "investment-assistant"].includes(view) && <SpecialistManagerPage key={view} workspaceId={workspaceId} manager={view === "cashflow-manager" ? "CASHFLOW" : view === "insurance-manager" ? "INSURANCE" : "INVESTMENT"} onDataChange={() => loadPortfolio(workspaceId)} onBookkeeping={() => setView("bookkeeping")} onExecution={() => setView("execution")} onCar={() => startCarPlanning()} />}
           {view === "execution" && <>
+            {UNIFIED_CAR_PLANNING ? <GoalFundingWorkspace key={workspaceId} workspaceId={workspaceId} revision={portfolio.portfolioRevision} goals={portfolio.goals} onDataChange={() => loadPortfolio(workspaceId)} onOpenPlanning={() => setView("planning")}>
+              <ManagerSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpen={() => {}} onCar={() => startCarPlanning()} onExecution={() => {}} remindersOnly />
+              <ActionsView result={executionResults.actions} loading={saving} onStatus={updateActionStatus} />
+              <GoalDecisionSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpenPlanning={() => setView("planning")} />
+            </GoalFundingWorkspace> : <div className="goal-manager-layout">
+              <AgentConversation key={`${workspaceId}:GOAL`} workspaceId={workspaceId} agentKey="GOAL" goals={portfolio.goals} onDataChange={() => loadPortfolio(workspaceId)} onOpenPlanning={() => setView("planning")} embedded /><div>
+              <ManagerSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpen={() => {}} onCar={() => startCarPlanning()} onExecution={() => {}} remindersOnly />
+              <ActionsView result={executionResults.actions} loading={saving} onStatus={updateActionStatus} />
+              <GoalDecisionSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpenPlanning={() => setView("planning")} />
+            </div></div>}
             <section className="goal-simulation-entry" aria-label="未来可能性推演">
-              <div><h2>先预演，再做决定</h2><p>买车看 5 年，买房看 30 年。比较两种付款方式，体验人生事件，看看剩余资金如何变化。</p><small>{planningGoal ? `当前规划目标：${planningGoal.name}` : "使用当前底账确认开局，也可以选择虚构角色体验。"}</small></div>
-              <button type="button" className="button-primary" onClick={openSimulation}><Activity size={18} aria-hidden="true" />未来可能性推演</button>
+              <div><h2>也可以探索未来可能性</h2><p>买车看 5 年，买房看 30 年。比较两种付款方式，体验人生事件，看看剩余资金如何变化。</p><small>{planningGoal ? `当前规划目标：${planningGoal.name}` : "使用当前底账确认开局，也可以选择虚构角色体验。"}</small></div>
+              <button type="button" className="button-secondary" onClick={openSimulation}><Activity size={18} aria-hidden="true" />未来可能性推演</button>
             </section>
-            <div className="goal-manager-layout"><AgentConversation key={`${workspaceId}:GOAL`} workspaceId={workspaceId} agentKey="GOAL" goals={portfolio.goals} onDataChange={() => loadPortfolio(workspaceId)} onOpenPlanning={() => setView("planning")} embedded /><div>{<ManagerSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpen={() => {}} onCar={() => startCarPlanning()} onExecution={() => {}} remindersOnly /> }<ActionsView result={executionResults.actions} loading={saving} onStatus={updateActionStatus} />
-          <GoalDecisionSummary workspaceId={workspaceId} revision={portfolio.portfolioRevision} onOpenPlanning={() => setView("planning")} /></div></div></>}
+          </>}
           {view === "data-management" && <DataManagementView workspaceId={workspaceId} onChange={() => loadPortfolio(workspaceId)} />}
           {view === "bookkeeping" && <BookkeepingView workspaceId={workspaceId} onExecutionChange={() => loadPortfolio(workspaceId)} />}
           {view === "assets" && <ResourceList kind="asset" items={portfolio.assets} goals={portfolio.goals} onAdd={() => setEditor({ kind: "asset" })} onEdit={(item) => setEditor({ kind: "asset", item })} onDelete={(item) => setDeleting({ kind: "asset", item })} />}
