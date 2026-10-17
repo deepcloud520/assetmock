@@ -32,7 +32,7 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
 
   const points = model.quantilesByMonth[strategy.id] ?? [];
   const colors = strategyColor(strategy, index);
-  const minima = model.minUsables[strategy.id] ?? [];
+  const minima = useMemo(() => model.minUsables[strategy.id] ?? [], [model, strategy.id]);
 
   // 分布自己的纵向范围：只覆盖这条策略真正摸到过的区间，两端各留 8%
   const marginal = useMemo(() => {
