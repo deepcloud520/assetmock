@@ -200,6 +200,8 @@
   .wl-card-row em { margin-left: auto; color: #6a819a; font-style: normal; font-variant-numeric: tabular-nums; }
   .wl-card-foot { border-top: 1px solid #e7eef6; padding-top: 0.3rem; color: #8296a8; font-size: 0.68rem; }
 
+  .wl-prob-inline { font-size: 9.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
   .wl-prob { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
   .wl-interpret { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.85rem 0.95rem; border: 1px solid #e2e8f0; border-radius: 0.7rem; background: #fbfdff; }

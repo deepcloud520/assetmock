@@ -91,6 +91,26 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
     return LEVELS.map(level => ({ level, percent: Math.round((counts[level] / total) * 100) }));
   }, [minima, strategy.floorMinor]);
 
+  /** 每一档在分布图上占据的纵向区间（用于把概率写在区间中间） */
+  const bandLabels = useMemo(() => {
+    const floor = strategy.floorMinor;
+    const bounds: Record<(typeof LEVELS)[number], [number, number]> = {
+      short: [marginal.min, Math.min(0, marginal.max)],
+      risk: [Math.max(0, marginal.min), Math.min(floor, marginal.max)],
+      tight: [Math.max(floor, marginal.min), Math.min(floor * 1.25, marginal.max)],
+      safe: [Math.max(floor * 1.25, marginal.min), marginal.max],
+    };
+    return shares
+      .filter(share => share.percent > 0)
+      .flatMap(share => {
+        const [low, high] = bounds[share.level];
+        if (high <= low) return [];
+        const mid = (low + high) / 2;
+        return [{ level: share.level, percent: share.percent, y: YM(Math.max(marginal.min, Math.min(marginal.max, mid))) }];
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- YM 只依赖 marginal，已随 marginal 一起变化
+  }, [shares, marginal, strategy.floorMinor]);
+
   const gradientId = `wl-danger-${strategy.id}`;
   const stopAt = (value: number) => {
     const ratio = (value - marginal.min) / (marginal.max - marginal.min || 1);
@@ -149,30 +169,34 @@ export function StrategyPanel({ model, strategy, index, domain, cursor }: {
       <line x1={X(cursor)} x2={X(cursor)} y1={CHART_PAD.top} y2={CHART_PAD.top + innerHeight} className="wl-cursor" />
       <text x={X(cursor)} y={CHART_PAD.top - 4} textAnchor="middle" className="wl-axis">第{cursor}月</text>
 
-      {/* 右侧：最低值分布曲线（填充按危险程度渐变） */}
+      {/* 右侧：最低值分布曲线（填充按危险程度渐变），概率直接嵌在曲线里 */}
       <line x1={marginalX} x2={marginalX} y1={CHART_PAD.top} y2={CHART_PAD.top + innerHeight} className="wl-marginal-axis" />
       {curve && <path d={curve} fill={`url(#${gradientId})`} stroke="#6b7f93" strokeWidth={0.9} strokeOpacity={0.7} />}
+      <line x1={marginalX} x2={marginalX + marginalWidth} y1={YM(0)} y2={YM(0)} stroke="#9fb0c2" strokeWidth={0.8} strokeDasharray="2 3" />
       <line x1={marginalX} x2={marginalX + marginalWidth} y1={YM(strategy.floorMinor)} y2={YM(strategy.floorMinor)} stroke={DANGER_COLORS.tight} strokeWidth={1.1} strokeDasharray="4 3" />
       <text x={marginalX + marginalWidth} y={YM(strategy.floorMinor) - 3} textAnchor="end" className="wl-axis">门槛</text>
 
-      {/* 概率：直接写在曲线右侧 */}
-      {shares.map((share, i) => (
-        <text key={share.level}
-          x={marginalX + marginalWidth + 4}
-          y={CHART_PAD.top + 12 + i * 13}
-          className="wl-prob"
-          fill={DANGER_COLORS[share.level]}>
-          {LEVEL_LABELS[share.level]} {share.percent}%
+      {/* 概率写在各自那一档的区间中间，白描边压住曲线，保证看得清 */}
+      {bandLabels.map(item => (
+        <text key={item.level}
+          x={marginalX + marginalWidth / 2}
+          y={item.y}
+          textAnchor="middle"
+          className="wl-prob-inline"
+          fill={DANGER_COLORS[item.level]}
+          stroke="#ffffff"
+          strokeWidth={2.4}
+          paintOrder="stroke">
+          {item.percent}%
         </text>
       ))}
-      <text x={marginalX + marginalWidth + 4} y={CHART_PAD.top + 12 + shares.length * 13} className="wl-axis">最低值分布</text>
     </svg>
     <p className="wl-legend-line">
       {LEVELS.map(level => <span key={level}>
         <i style={{ background: DANGER_COLORS[level] }} />
         {LEVEL_LABELS[level]}
       </span>)}
-      <span>{wan(marginal.min)}–{wan(marginal.max)}</span>
+      <span>最低值分布 {wan(marginal.min)}–{wan(marginal.max)}</span>
     </p>
   </figure>;
 }
