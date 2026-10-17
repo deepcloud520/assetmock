@@ -19,4 +19,18 @@ if (!process.argv.includes("--worker-only")) children.push(spawn(path.resolve("n
 let stopping = false;
 const stop = () => { if (stopping) return; stopping = true; for (const child of children) child.kill("SIGTERM"); };
 process.on("SIGINT", stop); process.on("SIGTERM", stop);
-for (const child of children) child.on("exit", stop);
+for (const [index, child] of children.entries()) {
+  const name = ["撮合 worker", "策略 worker", "Web"][index];
+  child.on("error", error => {
+    console.error(`${name} 无法启动：${error.message}`);
+    process.exitCode = 1;
+    stop();
+  });
+  child.on("exit", (code, signal) => {
+    if (!stopping) {
+      console.error(`${name} 已退出（${signal ?? code}），停止其他进程。请查看上方日志后重新启动。`);
+      process.exitCode = code || 1;
+    }
+    stop();
+  });
+}

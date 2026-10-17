@@ -46,6 +46,18 @@ export class V2Store {
       this.db.prepare('INSERT INTO v2_requests VALUES(?,?,?,?)').run(id, key, fingerprint, JSON.stringify(view)); return view;
     }).immediate();
   }
+  purgeWorkspace(workspaceId: string) {
+    const prefix = `integrated:${workspaceId}:`;
+    this.db.pragma('secure_delete=ON');
+    this.db.transaction(() => {
+      this.db.prepare('DELETE FROM v2_requests WHERE run_id IN (SELECT id FROM v2_runs WHERE substr(session_id,1,?)=?)').run(prefix.length,prefix);
+      this.db.prepare('DELETE FROM v2_runs WHERE substr(session_id,1,?)=?').run(prefix.length,prefix);
+      for (const table of ['ai_records','search_documents','web_offers']) {
+        if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table)) this.db.prepare(`DELETE FROM ${table} WHERE substr(session_id,1,?)=?`).run(prefix.length,prefix);
+      }
+    })();
+    this.db.pragma('wal_checkpoint(TRUNCATE)');
+  }
   close() { this.db.close(); }
 }
 const globalV2 = globalThis as unknown as { lifeV2?: V2Store };

@@ -2,8 +2,8 @@ import { describe,it,expect } from 'vitest';
 import { db } from '../src/lib/db';
 import { openingDraft,confirmOpening,frozenOpening } from '../src/server/simulations/opening';
 import { saveReport,listReports } from '../src/server/simulations/access';
-import { createBudget } from '../src/server/unified-store';
-import { budgetSchema } from '../src/domain/specialist-managers';
+import { createBudget,encode,policyColumns } from '../src/server/unified-store';
+import { budgetSchema,policySchema } from '../src/domain/specialist-managers';
 import { simplifiedSchema,nextMonth } from '../src/domain/simulation-opening';
 import { calculate, defaultInput } from '../src/domain/v2/setup';
 import { catalog } from '../src/server/v2/catalog';
@@ -15,6 +15,26 @@ async function seed(){
  return w;
 }
 describe('integrated simulation boundary',()=>{
+ it('deducts partial reservations and records overrides only in frozen game input',async()=>{
+  const w=await seed();const asset=await db.asset.findFirstOrThrow({where:{workspaceId:w.id,name:'可用现金'}});
+  const decision=await db.goalDecision.create({data:{workspaceId:w.id,title:'另一目标'}});
+  const reservation=await db.goalFundingReservation.create({data:{workspaceId:w.id,decisionId:decision.id,assetId:asset.id,amountMinor:2000000n}});
+  const d=await openingDraft(w.id,null);expect(d.values.cash).toBe('24000000');
+  const o=await confirmOpening(w.id,'override-session',{...d.values,age:30,cash:'32000000',sourceSignature:d.sourceSignature,goalId:null,target:'car',confirmed:true,acknowledgeRestrictions:true});
+  expect(o.source.confirmed.cash).toBe('32000000');
+  expect(await db.asset.findUnique({where:{id:asset.id}})).toEqual(asset);
+  expect(await db.goalFundingReservation.findUnique({where:{id:reservation.id}})).toEqual(reservation);
+ });
+ it('annualizes outside premiums once, keeps included premiums and missing budget distinct',async()=>{
+  const w=await db.workspace.create({data:{}});const empty=await openingDraft(w.id,null);
+  expect(empty.values.salary).toBeNull();expect(empty.values.living).toBeNull();expect(empty.values.rent).toBeNull();
+  const p=policySchema.parse({name:'测试年缴',insured:'本人',category:'MEDICAL',coverageMinor:null,premiumMinor:'600000',paymentMonths:12,startsOn:null,endsOn:null,nextPaymentOn:null,renewalOn:null,cashValueAssetId:null,confirmed:true});
+  await db.insurancePolicy.create({data:{workspaceId:w.id,...policyColumns(p),dataJson:encode(p)}});
+  for(const included of [false,true]){
+   await db.$transaction(tx=>createBudget(tx,w.id,budgetSchema.parse({incomeMinor:'1800000',livingMinor:'900000',premiumsIncluded:included,debtIncluded:false,extraFixedMinor:'0',confirmed:true})));
+   expect((await openingDraft(w.id,null)).values.living).toBe(included?'900000':'950000');
+  }
+ });
  it('deduplicates debt, excludes restricted assets, and preserves source when confirming and saving',async()=>{
   const w=await seed(),before=await db.asset.findMany({where:{workspaceId:w.id}}),d=await openingDraft(w.id,null);
   expect(d.values.cash).toBe('26000000');expect(d.values.living).toBe('900000');expect(d.values.salary).toBe('1800000');

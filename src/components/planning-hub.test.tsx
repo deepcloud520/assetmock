@@ -45,7 +45,7 @@ const futurePlanning: FuturePlanningResult = {
   },
 };
 
-function hub(tab: HubTab, options: { activeGoal?: boolean; assessmentCurrent?: boolean; futurePlanning?: FuturePlanningResult | null } = {}) {
+function hub(tab: HubTab, options: { workspaceId?: string; activeGoal?: boolean; assessmentCurrent?: boolean; futurePlanning?: FuturePlanningResult | null } = {}) {
   const activeGoal = options.activeGoal ?? true;
   const assessmentCurrent = options.assessmentCurrent ?? true;
   return <PlanningHub
@@ -62,6 +62,7 @@ function hub(tab: HubTab, options: { activeGoal?: boolean; assessmentCurrent?: b
     onAdoptFuturePlanning={() => {}}
     onViewExecution={() => {}}
     simulationSnapshot={simulationSnapshot}
+    workspaceId={options.workspaceId}
     simulationStorageKey="test-simulation"
     activeGoal={activeGoal ? { id: "goal-1", name: "三年后购房" } : null}
     assessmentCurrent={assessmentCurrent}
@@ -88,9 +89,10 @@ describe("planning hub", () => {
     expect(planHtml).toContain("系统推荐");
     expect(planHtml).toContain("查看其他方案（2）");
     expect(planHtml).not.toContain("平衡方案");
-    const scenarioHtml = render(hub("scenarios"));
-    expect(scenarioHtml).toContain("手动单事件压力测试");
-    expect(scenarioHtml).toContain("正在读取本机人生进度");
+    const scenarioHtml = render(hub("scenarios", {workspaceId:"test-workspace"}));
+    expect(scenarioHtml).not.toContain("手动单事件压力测试");
+    expect(scenarioHtml).toContain("买车推演 5 年，买房推演 30 年");
+    expect(scenarioHtml).toContain("使用虚构角色体验");
   });
 
   it("blocks planning until a goal is selected and a current assessment exists", () => {

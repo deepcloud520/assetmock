@@ -1,3 +1,4 @@
+import { executeStrategyRun } from "@/server/paper-trading/experiments";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { assertLocal } from "@/server/local-data-access";
@@ -87,6 +88,11 @@ export async function POST(request: Request, ctx: Context) {
       const { experimentId, ...input } = body;
       if (route === "experiments/create") return response(await createExperiment(db, workspaceId, input));
       const eid = id.parse(experimentId);
+      if (route === 'experiments/step') {
+        const e = await db.paperStrategyExperiment.findFirst({where:{id:eid,workspaceId},include:{account:true}});
+        if (!e || e.account.mode !== 'REPLAY') throw new PaperError('此入口只允许独立回放账户',403);
+        return response(await executeStrategyRun(db,workspaceId,eid));
+      }
       if (route === "experiments/pool") return response(await updateStockPool(db, workspaceId, eid, input));
       if (route === "experiments/draft") return response(await draftStrategy(db, workspaceId, eid, input));
       if (route === "experiments/confirm") return response(await confirmStrategy(db, workspaceId, eid, input));

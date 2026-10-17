@@ -14,7 +14,7 @@
     "start": "next start --hostname 127.0.0.1",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "node scripts/database-init.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-isolated.mjs",
@@ -26,7 +26,9 @@
     "test:live:v2": "tsx scripts/live-v2.ts",
     "dev:all": "node scripts/paper-dev.mjs",
     "postinstall": "prisma generate",
-    "start:all": "node scripts/paper-dev.mjs --production"
+    "start:all": "node scripts/paper-dev.mjs --production",
+    "backup:all": "node scripts/backup-all.mjs",
+    "test:live:integrated": "tsx scripts/live-integrated.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.0",

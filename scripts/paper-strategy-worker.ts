@@ -11,7 +11,7 @@ process.on("SIGTERM", () => { stopped = true; });
 async function tick() {
   if (!await lease()) { stopped = true; return; }
   const now = new Date();
-  const experiments = await db.paperStrategyExperiment.findMany({ where: { status: "RUNNING" }, include: { authorizations: { where: { status: "ACTIVE" }, orderBy: { confirmedAt: "desc" }, take: 1 } } });
+  const experiments = await db.paperStrategyExperiment.findMany({ where: { status: "RUNNING", account: { mode: "LIVE" } }, include: { authorizations: { where: { status: "ACTIVE" }, orderBy: { confirmedAt: "desc" }, take: 1 } } });
   for (const e of experiments) {
     if (stopped) break;
     const auth = e.authorizations[0];

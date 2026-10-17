@@ -1,4 +1,5 @@
 "use client";
+import { DemoSwitch } from "./demo-switch";
 import { DataManagementView, clearBusinessCache } from "./data-management-view";
 
 import {
@@ -521,6 +522,7 @@ export function FinancialWorkspace() {
         </header>
 
         <main className="workspace-main mx-auto max-w-[1600px] px-4 py-7 sm:px-8 sm:py-9">
+          <DemoSwitch workspaceId={workspaceId}/>
           {notice && <div className="fixed right-5 top-20 z-50 flex items-center gap-2 border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-800 shadow-lg"><Check size={17} />{notice}</div>}
           {currentScene && sceneViews[currentScene].length > 1 && <div className="scene-tabs" role="tablist" aria-label={`${agentLabels[currentScene]}页面`}>
             {sceneViews[currentScene].map(tab => <button key={tab} role="tab" aria-selected={view === tab} onClick={() => setView(tab)}>{tabLabels[tab]}</button>)}

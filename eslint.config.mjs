@@ -9,5 +9,5 @@ export default defineConfig([
     'sonarjs/no-identical-expressions': 'error',
     'sonarjs/no-duplicated-branches': 'error'
   } },
-  globalIgnores(['.next/**', '.next-e2e/**', '.local-data/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'next-env.d.ts'])
+  globalIgnores(['.next/**', '.next-e2e/**', '.next-build/**', '.local-data/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'next-env.d.ts'])
 ]);
