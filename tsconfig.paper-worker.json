@@ -25,6 +25,7 @@
     "scripts/paper-worker.ts",
     "scripts/paper-quote-probe.ts",
     "scripts/paper-strategy-worker.ts",
-    "scripts/lib/runtime.cjs"
+    "scripts/lib/runtime.cjs",
+    "scripts/lib/supervisor.ts"
   ]
 }

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { continuous, PaperError } from "../src/domain/paper-trading";
 import { executeStrategyRun, pauseExperiment, pauseExperimentsOnRestart } from "../src/server/paper-trading/experiments";
 import { transaction } from "../src/server/paper-trading/service";
+import { shouldStopForOrphan } from "./lib/supervisor";
 
 const db = new PrismaClient(), owner = randomUUID();
 let stopped = false;
@@ -32,7 +33,7 @@ async function lease() {
 async function main() {
   if (!await lease()) { console.log("已有策略调度服务运行，本进程退出。"); await db.$disconnect(); return; }
   const restarted = await pauseExperimentsOnRestart(db);
-  const heartbeat = setInterval(() => { void lease().then(ok => { if (!ok) stopped = true; }).catch(() => { stopped = true; }); }, 10000);
+  const heartbeat = setInterval(() => { if (shouldStopForOrphan()) { console.log("父进程已退出，策略调度服务停止。"); stopped = true; return; } void lease().then(ok => { if (!ok) stopped = true; }).catch(() => { stopped = true; }); }, 10000);
   console.log(`策略调度服务启动；${restarted.paused} 个实验已暂停等待确认。`);
   while (!stopped) {
     try { await tick(); } catch { console.error("策略调度暂时不可用，请查看服务状态。"); }

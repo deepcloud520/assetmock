@@ -1,3 +1,4 @@
+import { shouldStopForOrphan } from "./lib/supervisor";
 import { PrismaClient } from "@prisma/client";
 import { triggerConditions } from "../src/server/paper-trading/conditions";
 import { runReplaySessions } from "../src/server/paper-trading/replay";
@@ -77,6 +78,7 @@ async function main() {
   console.log("模拟撮合服务启动。只有已核实资料和新鲜行情能够成交。");
   heartbeatTimer = setInterval(scheduleHeartbeat, 5000);
   while (!stopped) {
+    if (shouldStopForOrphan()) { console.log("父进程已退出，模拟撮合服务停止。"); break; }
     let delay = 5000;
     try { delay = await tick(); } catch (e) { console.error("模拟撮合暂停：", e instanceof Error ? e.message : "unknown"); }
     for (let elapsed = 0; !stopped && elapsed < delay; elapsed += 250) await new Promise(r => setTimeout(r, 250));

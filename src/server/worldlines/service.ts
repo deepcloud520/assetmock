@@ -5,6 +5,7 @@ import { characterFrom, type OpeningDraft } from '@/domain/simulation-opening';
 import { calculate, rulesFor } from '@/domain/v2/setup';
 import type { Setup, Target } from '@/domain/v2/types';
 import { simulateWorldlines } from '@/domain/worldline';
+import { normalizeLiving } from '@/domain/worldline/normalize';
 import type { WorldlineRunResult } from '@/domain/worldline/types';
 import { toRenderModel } from '@/domain/worldline/render-model';
 import { cardEvidence, cardLibraryV1, defaultCardPlan, paramPackV1, validateCardPlan, type CardPlan } from './cards';
@@ -63,10 +64,11 @@ export function setupFromValues(draft: OpeningDraft, input: Pick<WorldlineRunInp
     },
     'ledger-worldline',
   );
+  const normalized = normalizeLiving(Number(input.values.living), Number(input.values.rent));
   const { setup, errors } = calculate(
     { target, profileId: profile.id, price: priceOf(draft, target), paths },
     [offer],
-    { profile, rules: rulesFor(target) },
+    { profile: { ...profile, living: normalized.livingMinor }, rules: rulesFor(target) },
   );
   if (errors.length) throw new ServiceError(422, errors.join(' '));
   return setup;

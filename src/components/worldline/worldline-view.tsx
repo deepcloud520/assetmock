@@ -5,6 +5,7 @@ import type { RenderModel } from '@/domain/worldline/render-model';
 import { CandidateCards } from './cards';
 import { StrategyPanel } from './chart';
 import { bandColor, buildYDomain, wan, yuan } from './geometry';
+import { normalizeLiving } from '@/domain/worldline/normalize';
 import './worldline.css';
 
 const minorKeys = ['cash', 'fund', 'salary', 'living', 'rent', 'debt', 'debtPayment', 'bonus'] as const;
@@ -117,8 +118,7 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
   function precheck(): string | null {
     const ageValue = Number(values.age);
     if (!Number.isInteger(ageValue) || ageValue < 18 || ageValue > 90) return `年龄需在 18–90 之间（现在填的是 ${values.age || '空'}）`;
-    if (toMinor(values.rent) > toMinor(values.living)) return '生活费中的租金不能超过月生活费';
-    if (toMinor(values.living) === '0') return '月生活费不能是 0，否则算不出紧巴门槛';
+    if (toMinor(values.living) === '0' && toMinor(values.rent) === '0') return '月生活费不能是 0，否则算不出紧巴门槛';
     if (toMinor(values.salary) === '0' && toMinor(values.fund) === '0' && toMinor(values.cash) === '0') return '现金、投资、月收入不能同时为 0';
     if (settings.n < 20) return '世界线条数至少 20 条';
     if (settings.months < 1) return '推演月数至少 1 个月';
@@ -164,6 +164,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
 
   const domain = model ? buildYDomain(model) : { min: 0, max: 1 };
   const brief = ['cash', 'fund', 'salary', 'living'] as const;
+  // 租金比生活费还大 → 说明填的是"不含租金"的口径，服务端会自动加回去；这里同步给出提示
+  const livingNotice = normalizeLiving(Number(toMinor(values.living ?? '0')), Number(toMinor(values.rent ?? '0'))).notice;
 
   return <div className="worldline-app">
     <section className="wl-notice">
@@ -199,6 +201,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
           <b>{values[key]?.trim() ? `${yuan(Number(toMinor(values[key])))} 元` : '待补'}</b>
         </li>)}
       </ul>
+
+      {livingNotice && <p className="wl-hint">{livingNotice}</p>}
 
       <div className="wl-inline">
         <button type="button" className="button-secondary" onClick={() => setEditing(value => !value)}>

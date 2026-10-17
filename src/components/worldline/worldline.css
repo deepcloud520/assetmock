@@ -107,6 +107,8 @@
   .wl-summary span { display: block; color: #8296a8; font-size: 0.75rem; }
   .wl-summary b { color: #1d3c58; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
 
+  .wl-hint { color: #8a5b0b; font-size: 0.8rem; }
+
   .wl-inline { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
   .wl-notes { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.5rem; color: #60758c; font-size: 0.78rem; }
   .wl-notes li::before { content: '· '; color: #a9bccd; }
