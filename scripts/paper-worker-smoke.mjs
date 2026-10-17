@@ -1,3 +1,4 @@
+import runtime from "./lib/cli.mjs";
 import { PrismaClient } from "@prisma/client";
 import { mkdtemp, readdir, readFile, writeFile, rm, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -48,7 +49,7 @@ try {
   const migrations = (await readdir("prisma/migrations")).filter(x => /^\d/.test(x)).sort();
   const sqlFile = join(dir, "migration.sql");
   await writeFile(sqlFile, (await Promise.all(migrations.map(m => readFile(`prisma/migrations/${m}/migration.sql`, "utf8")))).join("\n"));
-  await execute("python3", ["-c", "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(open(sys.argv[2]).read());c.close()", file, sqlFile]);
+  await runtime.runPython("import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(open(sys.argv[2],encoding='utf8').read());c.close()", [file, sqlFile]);
   report.schemaMigrations = migrations;
   process.env.DATABASE_URL = databaseURL;
   db = new PrismaClient({ datasourceUrl: databaseURL });

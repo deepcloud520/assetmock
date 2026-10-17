@@ -1,0 +1,28 @@
+name: Portable first run
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+jobs:
+  clean-start:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --include=dev
+      - run: npx playwright install chromium
+      - run: npm run test:startup
+      - run: npm run build

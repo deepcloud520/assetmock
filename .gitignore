@@ -47,3 +47,9 @@ prisma/*.db-shm
 .next-e2e/
 
 .next-build/
+
+# Local startup ownership; never copy between machines
+*.app-lock
+*.init-lock
+
+.next-startup-test/

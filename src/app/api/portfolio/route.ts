@@ -7,7 +7,12 @@ import { apiError, getWorkspaceId, serialize } from "@/server/portfolio";
 export async function GET(request: Request) {
   try {
     await initializeData(getWorkspaceId(request));
-    await dailyBackup();
+    let backupWarning: string | null = null;
+    try { await dailyBackup(); }
+    catch (error) {
+      console.error("Daily backup failed", error instanceof Error ? error.message : "unknown");
+      backupWarning = "自动备份未完成，底账仍可读取。请检查启动终端的错误并重试备份。";
+    }
     const workspace = await db.workspace.findUnique({
       where: { id: getWorkspaceId(request) },
       include: {
@@ -18,7 +23,7 @@ export async function GET(request: Request) {
       },
     });
     if (!workspace) return Response.json({ error: "工作区不存在" }, { status: 404 });
-    return Response.json(serialize({ ...workspace, ledgerHeaders: ledgerHeadersSchema.parse(JSON.parse(workspace.ledgerHeadersJson)) }));
+    return Response.json(serialize({ ...workspace, backupWarning, ledgerHeaders: ledgerHeadersSchema.parse(JSON.parse(workspace.ledgerHeadersJson)) }));
   } catch (error) {
     return apiError(error);
   }

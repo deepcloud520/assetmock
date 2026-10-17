@@ -1,12 +1,12 @@
 import { open, readFile, unlink, mkdir } from "node:fs/promises";
 import { AsyncLocalStorage } from "node:async_hooks";
 import path from "node:path";
+import { databaseFile } from "../../scripts/lib/runtime.cjs";
 import { randomUUID } from "node:crypto";
 
 const context = new AsyncLocalStorage<boolean>();
 export function paperLockPath() {
-  const raw = (process.env.DATABASE_URL ?? "file:./dev.db").replace(/^file:/, "").split("?")[0];
-  return (path.isAbsolute(raw) ? raw : path.resolve("prisma", raw)) + ".paper-lock";
+  return databaseFile() + ".paper-lock";
 }
 // Shared by all trading writes and destructive maintenance. No time-based lock stealing:
 // a slow but live process must retain exclusion. Recovery only after the owner exits.

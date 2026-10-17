@@ -26,3 +26,11 @@ if (missing.length) {
   process.exit(1);
 }
 console.log('构建依赖检查通过。');
+if (process.env.npm_lifecycle_event === 'doctor') {
+  try {
+    const { default: runtime } = await import('./lib/cli.mjs');
+    runtime.loadEnvironment();
+    const python = runtime.pythonCommand();
+    console.log(`Python 3 检查通过：${python.command} ${python.args.join(' ')}`);
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
+}

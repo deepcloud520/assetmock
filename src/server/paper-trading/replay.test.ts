@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
+import { runPythonSync } from "../../../scripts/lib/runtime.cjs";
 import { randomUUID } from "node:crypto";
 import { DEFAULT_RULES, json } from "../../domain/paper-trading";
 import { validateReplayDataset, replayCapacity, replayFillPrice } from "../../domain/paper-replay";
@@ -23,7 +23,7 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "paper-replay-test-")); const file = join(dir, "test.sqlite");
   const migrations = (await readdir("prisma/migrations")).filter(x => /^\d/.test(x)).sort();
   const sql = (await Promise.all(migrations.map(m => readFile(`prisma/migrations/${m}/migration.sql`, "utf8")))).join("\n");
-  execFileSync("python3", ["-c", "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", file], { input: sql });
+  runPythonSync("import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.executescript(sys.stdin.read());c.close()", [file], { input: sql });
   db = new PrismaClient({ datasourceUrl: `file:${file}` });
   await db.paperRuleVersion.create({ data: { id: "replay-test-rules", configJson: json({ ...DEFAULT_RULES, qualified: true, qualifiedUntil: "2026-12-31" }), source: "synthetic test only" } });
   await db.marketInstrument.create({ data: { id: "sh600000", name: "测试普通股票", board: "MAIN", source: "synthetic test only" } });

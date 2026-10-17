@@ -90,6 +90,7 @@ type Goal = {
 };
 
 type Portfolio = {
+  backupWarning?: string | null;
   id: string;
   portfolioRevision: number;
   dataEpoch: number;
@@ -265,10 +266,16 @@ export function FinancialWorkspace() {
         const storedId = localStorage.getItem(STORAGE_KEY);
         let activeId: string;
         if (!storedId) {
-          const response = await fetch("/api/workspaces", { method: "POST" });
-          if (!response.ok) throw new Error("无法创建本地财富空间");
-          const workspace = await response.json();
-          activeId = workspace.id as string;
+          const startup = await fetch("/api/bootstrap");
+          if (!startup.ok) throw new Error("初始化未完成，请查看启动终端的错误后重新启动应用");
+          const { demoWorkspaceId } = await startup.json();
+          if (demoWorkspaceId) activeId = demoWorkspaceId;
+          else {
+            const response = await fetch("/api/workspaces", { method: "POST" });
+            if (!response.ok) throw new Error("无法创建本地财富空间");
+            const workspace = await response.json();
+            activeId = workspace.id as string;
+          }
           localStorage.setItem(STORAGE_KEY, activeId);
         } else {
           activeId = storedId;
@@ -539,6 +546,7 @@ export function FinancialWorkspace() {
             {sceneViews[currentScene].map(tab => <button key={tab} role="tab" aria-selected={view === tab} onClick={() => setView(tab)}>{tabLabels[tab]}</button>)}
           </div>}
           {currentScene && currentScene !== "GOAL" && <AgentConversation key={`${workspaceId}:${currentScene}`} workspaceId={workspaceId} agentKey={currentScene} goals={portfolio.goals} onDataChange={() => loadPortfolio(workspaceId)} onOpenPlanning={() => setView("planning")} />}
+          {portfolio.backupWarning && <p className="manager-note" role="status">{portfolio.backupWarning} <button className="button-secondary" onClick={() => void loadPortfolio(workspaceId)}>重试备份</button></p>}
           {error && <div className="mb-5 flex items-center justify-between border-l-4 border-rose-500 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{error}</span><button onClick={() => setError("")} aria-label="关闭"><X size={16} /></button></div>}
 
           {view === "agent" && <FinancialHome onViewExecution={() => setView("execution")} onStartCarPlanning={startCarPlanning} onOpenGoalManager={() => setView("execution")} workspaceId={workspaceId} revision={portfolio.portfolioRevision} profile={portfolio.profile ?? emptyProfile} assets={portfolio.assets} liabilities={portfolio.liabilities} goals={portfolio.goals} multiGoalConsentAt={portfolio.multiGoalConsentAt} saving={saving} assessment={agentResults.diagnosis?.fourAccountAssessment ?? null} assessmentStale={agentResults.diagnosis?.isStale ?? false} assessmentLoading={runningTask === "WEALTH_DIAGNOSIS"} assessmentFocusRequest={assessmentFocusRequest} planningGoal={planningGoal} assessmentCurrent={assessmentCurrent} onAssess={() => runAgentTask("WEALTH_DIAGNOSIS")} onViewReport={() => setView("diagnosis")} onStartPlanning={startGoalPlanning} onEdit={(kind, item) => setEditor({ kind, item })} onDelete={(kind, item) => setDeleting({ kind, item })} onSave={saveInlineResource} onSaveProfile={saveProfile} onDataChange={() => loadPortfolio(workspaceId)} />}
