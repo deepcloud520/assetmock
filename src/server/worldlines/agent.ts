@@ -18,6 +18,7 @@ const valueLabels: Record<(typeof valueKeys)[number], string> = {
 
 export const goalArg = z.object({ goalId: z.string().nullable().default(null) }).strict();
 
+/** 工具入参：必须和 src/server/worldlines/tool-contract.ts 里 TOOL_INPUT_SCHEMA 暴露的一致，多一个少一个都会让 agent 第一次调用就失败 */
 export const runArgs = z.object({
   goalId: z.string().nullable().default(null),
   n: z.number().int().min(20).max(600).default(200),
@@ -27,6 +28,12 @@ export const runArgs = z.object({
   responsePolicy: z.enum(['WAIT', 'LOWER', 'TEMPORARY']).default('WAIT'),
   careerPolicy: z.enum(['DECLINE', 'ACCEPT']).default('DECLINE'),
   cardPlan: cardPlanSchema.nullable().default(null),
+  /** 目前只有 A/B 两条策略；传别的值直接拒，别默默算错的对比 */
+  strategies: z.array(z.enum(['a', 'b'])).length(2).optional(),
+  /** 参数包版本：只接受当前版本，避免 agent 记错版本还继续跑 */
+  paramsVersion: z.string().nullable().optional(),
+  /** 看目标达成 / 看资金链：当前只影响结论措辞，先接受不改行为 */
+  focus: z.enum(['GOAL', 'LIQUIDITY']).optional(),
 }).strict();
 
 export const detailArgs = runArgs.extend({ worldlineId: z.string().min(1).max(40) }).strict();
@@ -84,6 +91,9 @@ export async function reviewPlanForAgent(workspaceId: string, goalId: string | n
 /** 跑一批世界线（agent 入口：数值从底账来，不由 agent 提供） */
 export async function runWorldlinesForAgent(workspaceId: string, raw: unknown) {
   const args = runArgs.parse(raw);
+  if (args.paramsVersion && args.paramsVersion !== params.version) {
+    throw new ServiceError(422, `参数包版本是 ${params.version}，你给的是 ${args.paramsVersion}；去掉 paramsVersion 或改成当前版本。`);
+  }
   const { draft, target } = await draftContext(workspaceId, args.goalId);
   const payload = {
     goalId: args.goalId,
