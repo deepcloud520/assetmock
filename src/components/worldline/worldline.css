@@ -202,6 +202,13 @@
 
   .wl-prob { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
+  .wl-interpret { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.85rem 0.95rem; border: 1px solid #e2e8f0; border-radius: 0.7rem; background: #fbfdff; }
+  .wl-interpret h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; color: #1d3c58; }
+  .wl-badge { padding: 0.1rem 0.4rem; border-radius: 999px; background: #eef3f8; color: #6b7f93; font-size: 0.68rem; font-style: normal; font-weight: 500; }
+  .wl-interpret-headline { color: #1d3c58; font-size: 0.9rem; }
+  .wl-interpret-sections { display: flex; flex-direction: column; gap: 0.3rem; margin: 0; padding-left: 1.1rem; color: #4a5f75; font-size: 0.82rem; }
+  .wl-interpret-sections b { color: #1d3c58; margin-right: 0.35rem; }
+  .wl-interpret-sections span { color: #7b8fa4; }
   .wl-legend-line { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; margin-top: 0.3rem; color: #60758c; font-size: 0.72rem; }
   .wl-legend-line span { display: inline-flex; align-items: center; gap: 0.3rem; }
   .wl-legend-line i { width: 0.55rem; height: 0.55rem; border-radius: 2px; }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RenderModel } from '@/domain/worldline/render-model';
 import { CandidateCards } from './cards';
+import { InterpretationPanel } from './interpretation';
 import { SampleLineChart } from './sample-line';
 import { StrategyPanel } from './chart';
 import { bandColor, buildYDomain, wan, yuan } from './geometry';
@@ -330,6 +331,8 @@ export function WorldlineView({ workspaceId, goalId }: { workspaceId?: string; g
 
       <div className="wl-cards-head"><h3>抽几张看看（最多 6 张，优先 劣 / 次劣 / 次优）</h3></div>
       <CandidateCards candidates={model.candidates} blind={blind} />
+
+      <InterpretationPanel workspaceId={workspaceId} model={model} />
 
       <div className="wl-charts">
         {model.strategies.map((strategy, index) => <StrategyPanel key={strategy.id} model={model} strategy={strategy} index={index} domain={domain} cursor={cursor} />)}

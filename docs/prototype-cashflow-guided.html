@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>收支管家 · 复盘引导式重做（原型演示 · 假数据）</title>
+<style>
+  :root{
+    --ink:#17233c; --muted:#64748b; --line:#dce4ef; --line-soft:#e7edf5;
+    --blue:#1355ED; --blue-2:#267DFF; --bg:#f4f7fb; --warn:#F2881B;
+    --ai:#7c3aed; --flow:#1355ED; --mine:#0f766e; --profile:#64748b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  input,select,textarea{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--blue-2);outline-offset:2px}
+  a{color:var(--blue)}
+
+  /* ---------- shell ---------- */
+  .app{display:flex;min-height:100vh}
+  .sidebar{
+    position:fixed;inset:0 auto 0 0;width:208px;background:#fff;border-right:1px solid var(--line-soft);
+    display:flex;flex-direction:column;padding:18px 12px;z-index:5;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:0 6px 18px}
+  .brand-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#fff;
+    background:linear-gradient(140deg,#267DFF,#1355ED);font-size:13px;font-weight:700}
+  .brand p:first-child{font-size:13.5px;font-weight:700}
+  .brand p:last-child{font-size:11px;color:var(--muted)}
+  .nav{display:flex;flex-direction:column;gap:2px}
+  .nav button{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;font-size:13px;color:#425570;text-align:left}
+  .nav button:hover{background:#f1f6fc}
+  .nav button[aria-current="page"]{background:#eff4ff;color:var(--blue);font-weight:600}
+  .nav .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.55}
+  .sidebar-foot{margin-top:auto;padding:10px 8px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line-soft)}
+  .sidebar-foot strong{display:block;font-size:12.5px;color:var(--ink);margin:2px 0 4px}
+
+  .content{margin-left:208px;flex:1;min-width:0}
+  .topbar{position:sticky;top:0;z-index:4;height:60px;display:flex;align-items:center;gap:12px;
+    padding:0 26px;background:rgba(244,247,251,.86);backdrop-filter:blur(8px);border-bottom:1px solid var(--line-soft)}
+  .topbar h1{font-size:13.5px;font-weight:600}
+  .topbar small{font-size:11.5px;color:var(--muted)}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .saved{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+  .saved i{width:7px;height:7px;border-radius:50%;background:#3b82f6;display:block}
+  .btn{padding:8px 15px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid transparent;transition:.15s}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:hover{background:#0d47c8}
+  .btn-primary:disabled{background:#b9c6de;cursor:not-allowed}
+  .btn-ghost{background:#fff;border-color:#cbd5e1;color:#334155}
+  .btn-ghost:hover{background:#f8fafc;border-color:#94a3b8}
+  .btn-flat{color:var(--blue);padding:8px 4px;font-size:13px}
+  .btn-flat:hover{text-decoration:underline}
+
+  .main{max-width:1120px;padding:22px 26px 120px}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .tabs button{padding:9px 16px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button[aria-selected="true"]{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+
+  .page-head{display:flex;align-items:flex-end;gap:16px;margin-bottom:20px}
+  .page-head h2{font-size:25px;font-weight:700;letter-spacing:-.03em}
+  .page-head p{color:var(--muted);font-size:13px;margin-top:7px;max-width:62ch}
+  .page-head .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+  /* ---------- stepper ---------- */
+  .stepper{display:flex;gap:8px;margin-bottom:16px;list-style:none;flex-wrap:wrap}
+  .stepper li{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);
+    padding:7px 13px 7px 9px;border-radius:999px;background:#fff;border:1px solid var(--line);transition:.2s;cursor:pointer}
+  .stepper li.pending{cursor:default}
+  .stepper li span{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;
+    font-size:11px;font-weight:700;background:#eef2f8;color:#7d8ea3}
+  .stepper li.done{color:#334155;border-color:#c7d8ee}
+  .stepper li.done span{background:#dbeafe;color:var(--blue)}
+  .stepper li.now{color:#fff;background:var(--blue);border-color:var(--blue);box-shadow:0 4px 14px rgba(19,85,237,.28)}
+  .stepper li.now span{background:rgba(255,255,255,.24);color:#fff}
+  .stepper li.pending{color:#94a3b8}
+
+  /* ---------- card ---------- */
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:30px 32px 24px;
+    box-shadow:0 1px 2px rgba(23,35,60,.04)}
+  .step{display:none;animation:in .22s ease}
+  .step.on{display:block}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .step h3{font-size:19px;font-weight:650;letter-spacing:-.01em}
+  .step .lead{color:var(--muted);font-size:13px;margin-top:7px;max-width:64ch}
+  .why{margin-top:14px;display:inline-flex;gap:7px;align-items:flex-start;font-size:12.5px;color:#475569;
+    background:#f6f9fd;border-left:3px solid #c7d8ee;border-radius:0 8px 8px 0;padding:9px 14px;max-width:66ch}
+  .why b{color:var(--ink);font-weight:600}
+
+  .fields{margin-top:22px;display:grid;gap:18px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .field label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#425570;margin-bottom:7px}
+  .field .hint{font-size:11.5px;color:#94a3b8;font-weight:400;margin-left:auto}
+  .src{font-size:10.5px;padding:1.5px 6px;border-radius:4px;font-weight:600;white-space:nowrap}
+  .src[data-k="PROFILE"]{background:#f1f5f9;color:#64748b}
+  .src[data-k="FLOW"]{background:#eff4ff;color:#1355ED}
+  .src[data-k="AI"]{background:#f5f3ff;color:#7c3aed}
+  .src[data-k="USER"]{background:#ecfdf5;color:#0f766e}
+  .src[data-k="ASK"]{background:#fff7ed;color:#b45309}
+  .money{display:flex;align-items:center;border:1px solid #cbd5e1;border-radius:9px;background:#fff;transition:.15s}
+  .money:focus-within{border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(38,125,255,.12)}
+  .money i{padding:0 4px 0 13px;font-style:normal;color:#94a3b8;font-size:14px}
+  .money input{flex:1;min-width:0;border:0;padding:11px 13px 11px 4px;font-size:17px;font-weight:600;
+    font-variant-numeric:tabular-nums;letter-spacing:-.01em;background:transparent;outline:none}
+  .flash{animation:flash .7s ease}
+  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(124,58,237,.5)}100%{box-shadow:0 0 0 10px rgba(124,58,237,0)}}
+  .said{display:flex;gap:7px;align-items:baseline;margin-top:7px;font-size:12px;color:#7c3aed}
+  .said::before{content:"“";font-size:16px;line-height:1}
+  .said span{color:#7c3aed;opacity:.9}
+
+  .breakdown{margin-top:12px;border:1px dashed #cfdcec;border-radius:10px;padding:14px 16px;background:#fbfdff;display:none}
+  .breakdown.on{display:block}
+  .breakdown .lines{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+  .breakdown .lines div{font-size:12px;color:var(--muted)}
+  .breakdown .lines strong{display:block;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* yes/no questions */
+  .questions{margin-top:24px;display:grid;gap:14px}
+  .q{border:1px solid var(--line);border-radius:11px;padding:16px 18px;background:#fff}
+  .q.answered{background:#fbfdff;border-color:#cddffc}
+  .q p{font-size:14px;font-weight:600}
+  .q .sub{font-size:12.5px;color:var(--muted);margin-top:5px;font-weight:400}
+  .opts{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+  .opt{border:1px solid #cbd5e1;border-radius:8px;padding:7px 16px;font-size:13px;background:#fff;transition:.15s}
+  .opt:hover{border-color:var(--blue-2);color:var(--blue)}
+  .opt[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+  .askai{margin-top:11px;font-size:12px;color:var(--blue);display:inline-flex;gap:5px;align-items:center}
+  .askai:hover{text-decoration:underline}
+
+  /* preview */
+  .flowbar{display:flex;height:34px;border-radius:8px;overflow:hidden;margin:20px 0 10px;background:#eef2f8}
+  .flowbar div{display:grid;place-items:center;font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden}
+  .seg-living{background:#94a3b8}
+  .seg-premium{background:#f59e0b}
+  .seg-cap{background:var(--blue-2)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px}
+  .capacity{margin-top:20px;display:flex;align-items:baseline;gap:10px}
+  .capacity strong{font-size:31px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#0b3ea8}
+  .capacity span{font-size:13px;color:var(--muted)}
+  .delta{margin-top:6px;font-size:12px;color:#b45309}
+
+  .provenance{margin-top:24px;border-top:1px solid var(--line-soft);padding-top:16px}
+  .provenance h4{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:10px}
+  .prov{display:grid;gap:7px}
+  .prov li{display:flex;gap:9px;align-items:center;font-size:12.5px;color:#425570;list-style:none}
+  .prov b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+
+  .nav-row{display:flex;align-items:center;gap:10px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line-soft)}
+  .nav-row .hint{font-size:12px;color:var(--warn);margin-left:2px}
+  .nav-row .right{margin-left:auto;display:flex;gap:10px}
+
+  /* ---------- folds ---------- */
+  .folds{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+  .folds > p{padding:13px 20px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line-soft);background:#fbfcfe}
+  .fold{border-bottom:1px solid var(--line-soft)}
+  .fold:last-child{border-bottom:0}
+  .fold > button{width:100%;display:flex;align-items:center;gap:12px;padding:15px 20px;text-align:left}
+  .fold > button:hover{background:#f8fbff}
+  .fold .t{font-weight:600;font-size:13.5px}
+  .fold .s{font-size:12px;color:var(--muted)}
+  .fold .chev{margin-left:auto;color:#94a3b8;transition:.2s;font-size:11px}
+  .fold[open] .chev,.fold .chev.up{transform:rotate(180deg)}
+  .fold-body{padding:0 20px 16px;font-size:12.5px;color:#475569;display:none}
+  .fold-body.on{display:block}
+  .footnote{margin-top:16px;font-size:11.5px;color:#94a3b8;line-height:1.8}
+
+  /* ---------- old view ---------- */
+  #oldview{display:none}
+  #oldview.on{display:block}
+  .old-banner{border-left:4px solid var(--warn);background:#fff8ef;padding:12px 16px;font-size:12.5px;color:#8a5008;border-radius:0 8px 8px 0;margin-bottom:18px}
+  .old-section{border:1px solid #dce4ef;background:#fff;padding:26px;margin:18px 0}
+  .old-section h4{font-size:17px;font-weight:650;margin-bottom:12px}
+  .old-note{font-size:12px;color:var(--muted);margin:8px 0}
+  .old-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:18px 0}
+  .old-grid label{display:block;font-size:12.5px;color:#425570}
+  .old-grid input{width:100%;margin-top:6px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:6px;background:#fbfcfe;color:#94a3b8}
+  .old-check{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:#425570;margin:11px 0}
+  .old-check input{margin-top:4px}
+  .old-chips{display:flex;gap:22px;flex-wrap:wrap}
+
+  /* ---------- FAB + panel ---------- */
+  .fab{position:fixed;right:26px;bottom:26px;width:56px;height:56px;border-radius:50%;z-index:40;
+    display:grid;place-items:center;color:#fff;
+    background:linear-gradient(145deg,#2f86ff,#1355ED);box-shadow:0 12px 28px rgba(19,85,237,.4);
+    transition:transform .18s,box-shadow .18s}
+  .fab:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(19,85,237,.48)}
+  .fab .badge{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;border-radius:9px;background:#F2881B;
+    color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 5px;border:2px solid #fff}
+  .fab .tip{position:absolute;right:66px;white-space:nowrap;background:#17233c;color:#fff;font-size:11.5px;
+    padding:5px 10px;border-radius:6px;opacity:0;transform:translateX(4px);transition:.18s;pointer-events:none}
+  .fab:hover .tip{opacity:1;transform:none}
+
+  .panel{position:fixed;right:26px;bottom:96px;width:392px;max-width:calc(100vw - 32px);
+    height:min(620px,calc(100vh - 150px));z-index:41;display:flex;flex-direction:column;
+    background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    box-shadow:0 24px 60px rgba(15,32,64,.24);
+    opacity:0;transform:translateY(10px) scale(.98);pointer-events:none;transition:.2s ease}
+  .panel.open{opacity:1;transform:none;pointer-events:auto}
+  .panel-head{padding:14px 16px 12px;border-bottom:1px solid var(--line-soft);display:flex;gap:10px;align-items:flex-start}
+  .panel-head .av{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:700;
+    background:linear-gradient(145deg,#2f86ff,#1355ED);flex:0 0 auto}
+  .panel-head h4{font-size:13.5px;font-weight:650}
+  .panel-head p{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .panel-head .x{margin-left:auto;color:#94a3b8;width:26px;height:26px;border-radius:7px;display:grid;place-items:center}
+  .panel-head .x:hover{background:#f1f5f9;color:#334155}
+  .ctx{margin:11px 16px 0;border:1px solid #e2ecfb;background:#f6faff;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#3d5a7d}
+  .ctx b{color:var(--blue);font-weight:650}
+  .ctx details{margin-top:6px}
+  .ctx summary{cursor:pointer;color:var(--blue);font-size:11px;list-style:none}
+  .ctx summary::-webkit-details-marker{display:none}
+  .ctx ul{margin-top:6px;display:grid;gap:3px;list-style:none;font-size:11px;color:#5b7392}
+  .ctx li{display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+
+  .msgs{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:11px;background:#fcfdff}
+  .msg{max-width:88%;font-size:13px;line-height:1.72;padding:10px 13px;border-radius:12px}
+  .msg.bot{background:#f2f6fc;border-bottom-left-radius:4px;color:#243b58}
+  .msg.me{align-self:flex-end;background:#1355ED;color:#fff;border-bottom-right-radius:4px}
+  .msg.bot b{font-weight:650;color:#12233c}
+  .offer{border:1px solid #e5d9ff;background:#faf7ff;border-radius:11px;padding:12px 13px;max-width:92%;align-self:flex-start}
+  .offer p{font-size:12.5px;color:#5b21b6;font-weight:600}
+  .offer small{display:block;font-size:11px;color:#8b7bb5;margin:5px 0 9px}
+  .offer .acts{display:flex;gap:8px}
+  .offer .acts button{padding:6px 13px;border-radius:7px;font-size:12px;font-weight:600}
+  .offer .use{background:var(--ai);color:#fff}
+  .offer .nope{background:#fff;border:1px solid #d8cbf5;color:#6b4ea8}
+  .offer.done p{color:#0f766e}
+  .offer.done .acts{display:none}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap;padding:10px 16px 0}
+  .chips button{font-size:11.5px;padding:6px 11px;border-radius:999px;border:1px solid #dbe4ef;color:#425570;background:#fff}
+  .chips button:hover{border-color:var(--blue-2);color:var(--blue);background:#f7faff}
+  .composer{display:flex;gap:9px;padding:12px 16px 14px;align-items:flex-end}
+  .composer textarea{flex:1;min-height:44px;max-height:96px;resize:none;border:1px solid #cbd5e1;border-radius:10px;
+    padding:11px 12px;font-size:13px;line-height:1.5;outline:none}
+  .composer textarea:focus{border-color:var(--blue-2);box-shadow:0 0 0 3px rgba(38,125,255,.12)}
+  .composer .send{width:40px;height:40px;border-radius:10px;background:var(--blue);color:#fff;display:grid;place-items:center;flex:0 0 auto}
+  .composer .send:disabled{background:#c3cfe3}
+  .panel-foot{font-size:10.5px;color:#94a3b8;padding:0 16px 11px;line-height:1.6}
+
+  .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,14px);background:#17233c;color:#fff;
+    font-size:13px;padding:11px 18px;border-radius:9px;z-index:60;opacity:0;pointer-events:none;transition:.22s;
+    box-shadow:0 12px 30px rgba(15,32,64,.28)}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- 评审用 ---------- */
+  .sharebar{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;background:#eef4ff;border:1px solid #cddffc;
+    border-radius:10px;padding:11px 14px 11px 12px;font-size:12.5px;color:#2b4a72;margin-bottom:16px;line-height:1.75}
+  .sharebar .pill{background:var(--blue);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;margin-top:2px}
+  .sharebar .order{display:block;color:#5b7392;margin-top:3px}
+  .sharebar .ord{flex:1;min-width:240px}
+  .sharebar .x{color:#7d93b0;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;flex:0 0 auto}
+  .sharebar .x:hover{background:#dde8fa;color:#274b78}
+  .review{margin-top:26px;border-top:1px solid var(--line);padding-top:18px;font-size:12.5px;color:#475569}
+  .review h4{font-size:13px;color:var(--ink);font-weight:650;margin-bottom:10px}
+  .review ol{padding-left:22px;display:grid;gap:6px;line-height:1.75}
+  .review .sign{margin-top:12px;font-size:11.5px;color:#94a3b8}
+
+  @media(max-width:900px){
+    .sidebar{display:none}
+    .content{margin-left:0}
+    .main{padding:16px 14px 130px}
+    .row2,.old-grid{grid-template-columns:1fr}
+    .breakdown .lines{grid-template-columns:1fr 1fr}
+    .page-head{flex-wrap:wrap}
+    .panel{right:10px;left:10px;width:auto;bottom:88px;height:min(66vh,560px)}
+    .fab{right:16px;bottom:18px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">AI</div>
+      <div><p>AI 资产管家</p><p>个人财富空间</p></div>
+    </div>
+    <nav class="nav" aria-label="主导航">
+      <button><span class="dot"></span>资产管家</button>
+      <button><span class="dot"></span>目标管家</button>
+      <button aria-current="page"><span class="dot"></span>收支管家</button>
+      <button><span class="dot"></span>投资管家</button>
+      <button><span class="dot"></span>保险管家</button>
+    </nav>
+    <div class="sidebar-foot">财务底账<strong>第 3 版</strong>更新底账后，已有报告会提示重新评估。</div>
+  </aside>
+
+  <div class="content">
+    <header class="topbar">
+      <div>
+        <h1>收支管家</h1>
+        <small>数据保存在本机，按当前浏览器对应的匿名空间区分</small>
+      </div>
+      <div class="right">
+        <button class="btn btn-ghost" id="toggleOld">查看旧版界面</button>
+        <button class="btn btn-ghost">数据管理</button>
+        <div class="saved"><i></i>已保存</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="sharebar" id="sharebar">
+        <span class="pill">原型 · 假数据</span>
+        <div class="ord">
+          这是给组员看的交互演示，<b>不是线上版本</b>。所有金额都是编的，点“确认”不会保存任何东西。
+          <span class="order">建议顺序：① 右上角切「旧版界面」对比 → ② 走完 4 屏 → ③ 点右下角悬浮球，试 3 个快捷问题和一句“把生活预算改成 9500”</span>
+        </div>
+        <button class="x" id="closeShare" aria-label="关闭说明">✕</button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="false">记账</button>
+        <button role="tab" aria-selected="true">复盘</button>
+      </div>
+
+      <!-- ================= NEW ================= -->
+      <div id="newview">
+        <div class="page-head">
+          <div>
+            <h2>确认规划预算</h2>
+            <p>先把你每月真实的 inflow 和 outflow 说清楚，再谈能拿出多少钱去实现目标。四个问题，大约 1 分钟。</p>
+          </div>
+        </div>
+
+        <ol class="stepper" id="stepper">
+          <li data-step="1"><span>1</span>收入</li>
+          <li data-step="2"><span>2</span>必须花的钱</li>
+          <li data-step="3"><span>3</span>口径确认</li>
+          <li data-step="4"><span>4</span>预览与确认</li>
+        </ol>
+
+        <section class="card" aria-live="polite">
+          <!-- step 1 -->
+          <div class="step on" data-pane="1">
+            <h3>你每月到手多少？</h3>
+            <p class="lead">填税后到手的数。年终奖、红包这类不固定的先不填，等年底再看。</p>
+            <div class="why"><span>💡</span><div><b>为什么问这个：</b>后面所有"能拿出多少钱"都是以它为起点的，填高一点会让你高估自己的空间。</div></div>
+
+            <div class="fields">
+              <div class="row2">
+                <div class="field">
+                  <label>固定月收入 <span class="src" data-k="PROFILE" data-src-for="income">来自个人画像</span><span class="hint">已填好，改一下也行</span></label>
+                  <div class="money"><i>¥</i><input id="f-income" type="number" min="0" step="1" value="12000" inputmode="decimal"></div>
+                </div>
+                <div class="field">
+                  <label>其他月收入 <span class="src" data-k="PROFILE" data-src-for="otherIncome">来自个人画像</span></label>
+                  <div class="money"><i>¥</i><input id="f-otherIncome" type="number" min="0" step="1" value="0" inputmode="decimal"></div>
+                  <p class="hint" style="font-size:11.5px;color:#94a3b8;margin-top:6px">房租收入、兼职、副业这类每月都有但不稳定的，可以填一个保守的平均数。</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="nav-row">
+              <span class="hint" style="color:#94a3b8">1 / 4</span>
+              <div class="right">
+                <button class="btn btn-flat" data-ask="income">让 AI 帮我填这一屏</button>
+                <button class="btn btn-primary" data-next>下一步</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- step 2 -->
+          <div class="step" data-pane="2">
+            <h3>每月必须花掉多少？</h3>
+            <p class="lead">房租、吃饭、通勤、日用品——那些不给就过不下去的钱。旅行、买衣服、请客先不算进来。</p>
+            <div class="why"><span>💡</span><div><b>为什么这么问：</b>这个数越小，你能拿去实现目标的钱越多。但填太小，规划会先失败——所以宁可填高一点。</div></div>
+
+            <div class="fields">
+              <div class="field">
+                <label>月生活预算 <span class="src" data-k="FLOW" data-src-for="living">按你的流水估的</span></label>
+                <div class="money"><i>¥</i><input id="f-living" type="number" min="0" step="1" value="9000" inputmode="decimal"></div>
+                <button class="btn btn-flat" id="openBreak" style="padding:8px 0 0;font-size:12.5px">帮你拆一下 ↓</button>
+                <div class="breakdown" id="break">
+                  <div class="lines">
+                    <div>房租<strong>4,000</strong></div>
+                    <div>通勤<strong>500</strong></div>
+                    <div>吃饭日用<strong>4,500</strong></div>
+                    <div>其他<strong>0</strong></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="font-size:12px;color:var(--muted)">合计 <b style="color:var(--ink);font-size:14px">9,000</b>（近 3 个月在 8,700–9,300 之间）</span>
+                    <button class="btn btn-ghost" id="useBreak" style="margin-left:auto;padding:6px 12px;font-size:12px">用这个数</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>其他固定承诺 <span class="src" data-k="USER" data-src-for="extraFixed">你填写</span></label>
+                <div class="money"><i>¥</i><input id="f-extraFixed" type="number" min="0" step="1" value="0" inputmode="decimal"></div>
+                <p style="font-size:11.5px;color:#94a3b8;margin-top:6px">
+                  除了生活开支、保费、还款之外，还必须每月付的钱：给父母的生活费、孩子学费、房租如果是单独交的也算这儿。
+                  <b style="color:#b45309">保费和还款不要填在这里</b>，下一步会单独问你。
+                </p>
+              </div>
+            </div>
+
+            <div class="nav-row">
+              <button class="btn btn-ghost" data-prev>上一步</button>
+              <div class="right">
+                <button class="btn btn-flat" data-ask="living">让 AI 帮我填这一屏</button>
+                <button class="btn btn-primary" data-next>下一步</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- step 3 -->
+          <div class="step" data-pane="3">
+            <h3>这几笔钱，是不是已经在里面了？</h3>
+            <p class="lead">这两个问题最容易填错，也最影响结果——同一个 9,000，答案不同，每月能拿出来的钱会差 400 元。</p>
+            <div class="why"><span>💡</span><div><b>为什么非要你回答：</b>答案只能你自己知道。如果 AI 猜"已经包含"，而实际没包含，你的可投入金额会被高估，后面所有规划都会偏。<b>所以我不替你选。</b></div></div>
+
+            <div class="questions">
+              <div class="q" data-q="premium">
+                <p>这 9,000 元里，包含你现在的保险保费吗？</p>
+                <p class="sub">你目前登记了 1 份医疗险，每年 4,800 元，摊到每月 400 元。</p>
+                <div class="opts">
+                  <button class="opt" data-qk="premium" data-v="1" aria-pressed="false">包含</button>
+                  <button class="opt" data-qk="premium" data-v="0" aria-pressed="false">不包含</button>
+                  <button class="opt" data-qk="premium" data-v="?" aria-pressed="false">我不确定</button>
+                </div>
+                <button class="btn btn-flat askai" data-ask="premium">不确定？让 AI 帮你判断 →</button>
+              </div>
+
+              <div class="q" data-q="debt">
+                <p>这 9,000 元里，包含每月的还款吗？</p>
+                <p class="sub">你目前没有登记任何负债，所以这里通常是"不包含"。</p>
+                <div class="opts">
+                  <button class="opt" data-qk="debt" data-v="1" aria-pressed="false">包含</button>
+                  <button class="opt" data-qk="debt" data-v="0" aria-pressed="false">不包含</button>
+                  <button class="opt" data-qk="debt" data-v="?" aria-pressed="false">我不确定</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="nav-row">
+              <button class="btn btn-ghost" data-prev>上一步</button>
+              <span class="hint" id="step3hint">答完这两个问题才能继续</span>
+              <div class="right">
+                <button class="btn btn-primary" data-next disabled>下一步</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- step 4 -->
+          <div class="step" data-pane="4">
+            <h3>这就是你每月的真实结构</h3>
+            <p class="lead">确认之后会用于规划，不会改动你的画像，也不会改你已录入的流水。</p>
+
+            <div class="flowbar" id="flowbar"></div>
+            <div class="legend" id="legend"></div>
+
+            <div class="capacity">
+              <strong id="capValue">¥3,000</strong>
+              <span>每月可用于实现目标</span>
+            </div>
+            <p class="delta" id="capDelta"></p>
+
+            <div class="provenance">
+              <h4>这 6 个数字分别是怎么来的</h4>
+              <ul class="prov" id="prov"></ul>
+            </div>
+
+            <div class="nav-row">
+              <button class="btn btn-ghost" data-prev>上一步</button>
+              <div class="right">
+                <button class="btn btn-flat" data-ask="review">让 AI 帮我复核一遍</button>
+                <button class="btn btn-primary" id="confirmBudget">确认这份预算</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="folds">
+          <p>复盘的其他部分（原来这里是 4 个独立方框，现在收进来，需要时再展开）</p>
+          <div class="fold">
+            <button data-fold><span class="t">已录入实际</span><span class="s">近 3 个月收入 36,000 · 支出 27,300 · 结余 8,700</span><span class="chev">▾</span></button>
+            <div class="fold-body">这里放原来的消费分析（分类占比、异常项、可调整项）。分析结论可以直接一键带入上面的"月生活预算"。</div>
+          </div>
+          <div class="fold">
+            <button data-fold><span class="t">可持续投入能力</span><span class="s">确认预算后计算 · 当前未确认</span><span class="chev">▾</span></button>
+            <div class="fold-body">确认之后这里会显示"维持现有消费"和"执行已接受调整"两种口径，以及缺口说明。</div>
+          </div>
+          <div class="fold">
+            <button data-fold><span class="t">专业判断与产品比较</span><span class="s">需要先确认预算</span><span class="chev">▾</span></button>
+            <div class="fold-body">原来的评估卡、产品候选、核对清单。</div>
+          </div>
+          <div class="fold">
+            <button data-fold><span class="t">对目标与方案的影响</span><span class="s">2 个目标待核对：买车、应急金</span><span class="chev">▾</span></button>
+            <div class="fold-body">预算变化会提示哪些目标方案需要重新核对，但不会自动改已生效的方案。</div>
+          </div>
+          <div class="fold">
+            <button data-fold><span class="t">下一步与日期提醒</span><span class="s">3 条待处理</span><span class="chev">▾</span></button>
+            <div class="fold-body">保费缴纳日、续保日、复盘日。</div>
+          </div>
+        </div>
+
+        <p class="footnote">
+          设计说明：① 原来顶部的“与收支管家讨论”卡片已去掉，对话统一收进右下角悬浮球——两个入口会互相分流；
+          ② 第 3 屏两个口径问题 AI 只提问、不预填，因为它们直接决定“每月能拿出多少钱”是 3,000 还是 2,600；
+          ③ 所有字段保留来源标签，是为了让“AI 帮我填”可追溯，而不是变成“AI 替我瞎填”。
+        </p>
+      </div>
+
+      <!-- ================= OLD ================= -->
+      <div id="oldview">
+        <div class="old-banner">这是当前线上版本的形态：<b>7 个白底描边容器</b>从页头一直排到页脚，其中"确认规划预算"一节同屏 <b>22 个控件</b>。</div>
+        <div class="old-section">
+          <h4>已录入实际</h4>
+          <p class="old-note">以下基于已录入流水；记录数量不代表完整，账面结余不等于已存下的钱。</p>
+        </div>
+        <div class="old-section">
+          <h4>确认规划预算</h4>
+          <p class="old-note">初始值来自个人画像。确认后用于规划，不自动改写画像或实际流水。</p>
+          <div class="old-grid">
+            <label>预算生效日期<input value="2025-06-01"></label>
+            <label>本次调整原因<input placeholder=""></label>
+            <label>月收入（元）<input value="12000"></label>
+            <label>月生活预算（元）<input value="9000"></label>
+            <label>其他固定承诺（不重复填保费、还款）<input value="0"></label>
+            <label>拟新增月均保费假设<input value="0"></label>
+            <label>新增一次性支出<input value="0"></label>
+            <label>一次性支出月份<input value=""></label>
+            <label>收入到账日（每月几日，未知留空）<input value=""></label>
+            <label>债务还款日（每月几日，未知留空）<input value=""></label>
+            <label>月缴保费日期（每月几日，未知留空）<input value=""></label>
+            <label>其他固定支出日期（每月几日，未知留空）<input value=""></label>
+          </div>
+          <label class="old-check"><input type="checkbox" disabled><span>明确确认历史预算更正（生效日早于今天时需要）</span></label>
+          <div class="old-chips">
+            <label class="old-check"><input type="checkbox" checked disabled><span>生活预算已包含现有保费，避免再次扣除</span></label>
+            <label class="old-check"><input type="checkbox" disabled><span>生活预算已包含债务还款</span></label>
+            <label class="old-check"><input type="checkbox" disabled><span>确认将拟新增保费作为规划假设（未投保）</span></label>
+          </div>
+          <details style="margin:14px 0;border-top:1px solid #e7edf5;padding-top:12px">
+            <summary style="cursor:pointer;color:#1355ED;font-size:13px;font-weight:600">消费调整与变化说明</summary>
+            <div class="old-grid">
+              <label>可调整消费项<input placeholder="如减少外卖"></label>
+              <label>每月预计节省<input value="0"></label>
+              <label>对生活的影响<input placeholder="如每周增加自己做饭"></label>
+            </div>
+          </details>
+          <label class="old-check"><input type="checkbox" disabled><span>以上收入、预算及包含口径符合目前情况</span></label>
+          <button class="btn btn-primary" style="margin-top:8px" disabled>确认预算并检查影响</button>
+        </div>
+        <div class="old-section"><h4>可持续投入能力</h4><p class="old-note">确认预算后展示，不把未确认的零值当作无支出。</p></div>
+        <div class="old-section"><h4>专业判断与比较</h4><p class="old-note">先确认本次资料，再生成有依据的判断。</p></div>
+        <div class="old-section"><h4>对目标与当前方案的影响</h4><p class="old-note">尚无目标决策，可以在目标管家表达计划。</p></div>
+        <div class="old-section"><h4>下一步与日期提醒</h4><p class="old-note">3 条待处理。</p></div>
+      </div>
+
+      <div class="review">
+        <h4>看完想听你 5 个意见（直接在群里回就行）</h4>
+        <ol>
+          <li>4 屏的节奏可以吗？哪一屏的信息量还是太大？</li>
+          <li>每屏那行“为什么问这个”，像不像人话？有没有哪句还是术语？</li>
+          <li>右下角的悬浮球，会不会挡住你在看的内容？位置和大小合适吗？</li>
+          <li>字段上的来源标签（来自画像 / 按流水估的 / AI 建议 / 你填写），是有用，还是太吵？</li>
+          <li>第 3 屏那两个是非题，如果你第一次用，会怎么答？会不会想直接跳过？</li>
+        </ol>
+        <p class="sign">旧版界面对比用的是简化复刻，只为示意方框数量，细节和线上不完全一致。</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<button class="fab" id="fab" aria-label="打开收支管家对话" aria-expanded="false">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.4 9 9 0 0 1-3.8-.8L3 21l1.9-5.2A8.3 8.3 0 0 1 4 11.6 8.4 8.4 0 0 1 12.5 3.2 8.4 8.4 0 0 1 21 11.5Z"/>
+    <path d="M12.4 7.6 13 9.4l1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6.6-1.8Z" fill="currentColor" stroke="none"/>
+  </svg>
+  <span class="badge" id="fabBadge">1</span>
+  <span class="tip">收支管家 · 随时问我</span>
+</button>
+
+<section class="panel" id="panel" role="dialog" aria-label="与收支管家对话" aria-modal="false">
+  <div class="panel-head">
+    <div class="av">AI</div>
+    <div>
+      <h4>收支管家</h4>
+      <p id="ctxTitle">正在处理「确认规划预算」</p>
+    </div>
+    <button class="x" id="closePanel" aria-label="关闭对话">✕</button>
+  </div>
+
+  <div class="ctx">
+    第 <b id="ctxStep">1</b> 步 · <b id="ctxName">收入</b> · 已填 <b id="ctxFilled">4/6</b>
+    <details>
+      <summary>我读到了什么</summary>
+      <ul id="ctxList"></ul>
+    </details>
+  </div>
+
+  <div class="msgs" id="msgs"></div>
+
+  <div class="chips">
+    <button data-chip="help">这一节我不会填</button>
+    <button data-chip="check">帮我检查这几个数</button>
+    <button data-chip="why">为什么问保费是否包含</button>
+  </div>
+
+  <form class="composer" id="composer">
+    <textarea id="draft" rows="1" placeholder="写下你的问题，比如「房租算在生活预算里吗」…"></textarea>
+    <button class="send" id="send" aria-label="发送">➤</button>
+  </form>
+  <p class="panel-foot">我不会自动改你的账。要改哪个数字，我会先给你看确认卡。</p>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = (s,r=document)=>r.querySelector(s);
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+
+  const PREMIUM_MONTH = 400;   // 已登记医疗险 4800/年
+  const DEBT_MONTH = 0;
+  const NAMES = {1:"收入", 2:"必须花的钱", 3:"口径确认", 4:"预览与确认"};
+
+  const state = {
+    step: 1,
+    income: 12000, otherIncome: 0, living: 9000, extraFixed: 0,
+    includePremium: null, includeDebt: null,
+    src: { income:"PROFILE", otherIncome:"PROFILE", living:"FLOW", extraFixed:"USER",
+           includePremium:"ASK", includeDebt:"ASK" }
+  };
+
+  const SRC_TEXT = { PROFILE:"来自个人画像", FLOW:"按你的流水估的", AI:"AI 建议", USER:"你填写", ASK:"待你确认" };
+
+  /* ---------- 基础渲染 ---------- */
+  function money(n){ return "¥" + Number(n).toLocaleString("zh-CN"); }
+
+  function setSrc(key, src, extraText){
+    state.src[key] = src;
+    const node = document.querySelector('[data-src-for="'+key+'"]');
+    if(!node) return;
+    node.dataset.k = src;
+    node.textContent = extraText || SRC_TEXT[src];
+  }
+
+  function filledCount(){
+    return ["income","otherIncome","living","extraFixed","includePremium","includeDebt"]
+      .filter(k => state[k] !== null && state[k] !== "" && state[k] !== undefined).length;
+  }
+
+  function renderStep(){
+    $$(".step").forEach(p => p.classList.toggle("on", Number(p.dataset.pane) === state.step));
+    $$("#stepper li").forEach(li => {
+      const n = Number(li.dataset.step);
+      li.className = n === state.step ? "now" : n < state.step ? "done" : "pending";
+    });
+    $("#ctxStep").textContent = state.step;
+    $("#ctxName").textContent = NAMES[state.step];
+    $("#ctxFilled").textContent = filledCount() + "/6";
+    if(state.step === 3){
+      const ok = state.includePremium !== null && state.includeDebt !== null;
+      $('[data-pane="3"] [data-next]').disabled = !ok;
+      $("#step3hint").style.display = ok ? "none" : "inline";
+    }
+    if(state.step === 4) renderPreview();
+    renderCtxList();
+  }
+
+  function renderCtxList(){
+    const rows = [
+      ["月收入", money(state.income + state.otherIncome)],
+      ["月生活预算", money(state.living)],
+      ["其他固定承诺", money(state.extraFixed)],
+      ["生活预算含保费", state.includePremium === null ? "未回答" : state.includePremium ? "包含" : "不包含"],
+      ["生活预算含还款", state.includeDebt === null ? "未回答" : state.includeDebt ? "包含" : "不包含"]
+    ];
+    $("#ctxList").innerHTML = rows.map(([k,v]) => "<li><span>"+k+"</span><b>"+v+"</b></li>").join("");
+  }
+
+  function capacity(){
+    const gross = state.income + state.otherIncome;
+    const premiumOut = state.includePremium === false ? PREMIUM_MONTH : 0;
+    const debtOut = state.includeDebt === false ? DEBT_MONTH : 0;
+    return gross - state.living - state.extraFixed - premiumOut - debtOut;
+  }
+
+  function renderPreview(){
+    const gross = state.income + state.otherIncome;
+    const living = state.living;
+    const premiumOut = state.includePremium === false ? PREMIUM_MONTH : 0;
+    const cap = capacity();
+    const total = Math.max(gross, 1);
+    const pct = v => Math.max(0, Math.min(100, v / total * 100));
+    const segs = [
+      ["seg-living", living, "生活 "+money(living)],
+      ["seg-premium", premiumOut, premiumOut ? "保费 "+money(premiumOut) : ""],
+      ["seg-cap", cap, "可投入 "+money(cap)]
+    ].filter(s => s[1] > 0);
+    $("#flowbar").innerHTML = segs.map(s =>
+      '<div class="'+s[0]+'" style="width:'+pct(s[1]).toFixed(1)+'%">'+(s[1]/total>0.12?s[2]:"")+'</div>'
+    ).join("");
+    $("#legend").innerHTML = [
+      ["#94a3b8","生活预算"],["#f59e0b","保费（未包含在生活预算里）"],["#267DFF","可投入"]
+    ].map(([c,t]) => '<span><i style="background:'+c+'"></i>'+t+'</span>').join("");
+    $("#capValue").textContent = money(cap);
+
+    const delta = state.includePremium === null ? "" :
+      "「保费是否已包含」这一项，直接让结果相差 " + money(PREMIUM_MONTH) + "。";
+    $("#capDelta").textContent = delta;
+
+    const rows = [
+      ["固定月收入", money(state.income), "PROFILE"],
+      ["其他月收入", money(state.otherIncome), "PROFILE"],
+      ["月生活预算", money(state.living), state.src.living],
+      ["其他固定承诺", money(state.extraFixed), state.src.extraFixed],
+      ["保费口径", state.includePremium ? "已包含在生活预算里" : "不包含（单独扣除）", state.src.includePremium],
+      ["还款口径", state.includeDebt ? "已包含在生活预算里" : "不包含（单独扣除）", state.src.includeDebt]
+    ];
+    $("#prov").innerHTML = rows.map(([k,v,s]) =>
+      '<li>'+k+'<span class="src" data-k="'+s+'">'+SRC_TEXT[s]+'</span><b>'+v+'</b></li>'
+    ).join("");
+  }
+
+  /* ---------- 表单事件 ---------- */
+  const bind = { "f-income":"income", "f-otherIncome":"otherIncome", "f-living":"living", "f-extraFixed":"extraFixed" };
+  Object.entries(bind).forEach(([id,key]) => {
+    const el = document.getElementById(id);
+    el.addEventListener("input", () => {
+      state[key] = Number(el.value || 0);
+      setSrc(key, "USER", "你填写");
+      renderStep();
+    });
+  });
+
+  $("#openBreak").addEventListener("click", () => {
+    const b = $("#break");
+    b.classList.toggle("on");
+    $("#openBreak").textContent = b.classList.contains("on") ? "收起 ↑" : "帮你拆一下 ↓";
+  });
+  $("#useBreak").addEventListener("click", () => {
+    state.living = 9000;
+    const el = $("#f-living"); el.value = "9000";
+    setSrc("living", "FLOW", "按你的流水估的");
+    flash(el); renderStep(); toast("已按流水估算填入 9,000");
+  });
+
+  $$('[data-qk]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const k = btn.dataset.qk, v = btn.dataset.v;
+      $$('[data-qk="'+k+'"]').forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+      const val = v === "?" ? null : v === "1";
+      if(val === null){
+        state[k] = null;
+        setSrc(k === "premium" ? "includePremium" : "includeDebt", "ASK", "待你确认");
+        toast("不确定就先别填——点下方让 AI 帮你看流水");
+        markAnswered(k);
+      } else {
+        if(k === "premium"){ state.includePremium = val; setSrc("includePremium", "USER", "你确认"); }
+        else { state.includeDebt = val; setSrc("includeDebt", "USER", "你确认"); }
+        markAnswered(k, true);
+      }
+      renderStep();
+    });
+  });
+  function markAnswered(k, answered){
+    const q = document.querySelector('.q[data-q="'+k+'"]');
+    q.classList.toggle("answered", Boolean(answered));
+  }
+
+  function flash(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+
+  function goto(n){
+    if(n < 1 || n > 4) return;
+    if(n === 4 && (state.includePremium === null || state.includeDebt === null)){
+      toast("请先回答第 3 步的两个问题");
+      return;
+    }
+    state.step = n;
+    renderStep();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  $$('[data-next]').forEach(b => b.addEventListener("click", () => goto(state.step + 1)));
+  $$('[data-prev]').forEach(b => b.addEventListener("click", () => goto(state.step - 1)));
+  $$("#stepper li").forEach(li => li.addEventListener("click", () => {
+    const n = Number(li.dataset.step);
+    if(n < state.step) goto(n);
+  }));
+
+  $("#confirmBudget").addEventListener("click", () => {
+    const btn = $("#confirmBudget");
+    btn.textContent = "已确认 ✓";
+    btn.disabled = true;
+    toast("原型演示：真机上这一步会写入预算并检查对目标的影响");
+  });
+
+  /* ---------- 折叠 ---------- */
+  $$("[data-fold]").forEach(b => {
+    b.addEventListener("click", () => {
+      const body = b.nextElementSibling;
+      const on = body.classList.toggle("on");
+      b.querySelector(".chev").classList.toggle("up", on);
+    });
+  });
+
+  /* ---------- 旧版切换 ---------- */
+  $("#toggleOld").addEventListener("click", () => {
+    const old = $("#oldview"), nw = $("#newview"), btn = $("#toggleOld");
+    const showOld = !old.classList.contains("on");
+    old.classList.toggle("on", showOld);
+    nw.style.display = showOld ? "none" : "";
+    btn.textContent = showOld ? "回到新版" : "查看旧版界面";
+  });
+
+  /* ---------- 对话面板 ---------- */
+  const panel = $("#panel"), fab = $("#fab"), msgs = $("#msgs"), draft = $("#draft");
+  function openPanel(){
+    panel.classList.add("open");
+    fab.setAttribute("aria-expanded", "true");
+    $("#fabBadge").style.display = "none";
+    setTimeout(() => draft.focus(), 40);
+  }
+  function closePanel(){
+    panel.classList.remove("open");
+    fab.setAttribute("aria-expanded", "false");
+  }
+  fab.addEventListener("click", () => panel.classList.contains("open") ? closePanel() : openPanel());
+  $("#closePanel").addEventListener("click", closePanel);
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closePanel(); });
+
+  function addMsg(role, html){
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.innerHTML = html;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  function addOffer(text, sub, applyFn){
+    const wrap = document.createElement("div");
+    wrap.className = "offer";
+    wrap.innerHTML = '<p>'+text+'</p><small>'+sub+'</small>' +
+      '<div class="acts"><button class="use">用这个数</button><button class="nope">不用</button></div>';
+    wrap.querySelector(".use").addEventListener("click", () => {
+      applyFn();
+      wrap.classList.add("done");
+      wrap.querySelector("p").textContent = "已填入 ✓";
+      toast("已按 AI 建议填入，字段标了「AI 建议」");
+    });
+    wrap.querySelector(".nope").addEventListener("click", () => {
+      wrap.classList.add("done");
+      wrap.querySelector("p").textContent = "好的，保持原样";
+    });
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  addMsg("bot", "我在看<b>「确认规划预算」</b>。这一页你填到一半也可以直接问我，我不会自动改你的账。");
+  addMsg("bot", "现在是你这个页面上的状态：收入 12,000、生活预算 9,000，第 3 步的两个口径问题还没答。");
+
+  $$("[data-chip]").forEach(b => {
+    b.addEventListener("click", () => {
+      const k = b.dataset.chip;
+      openPanel();
+      addMsg("me", b.textContent);
+      setTimeout(() => handleChip(k), 220);
+    });
+  });
+
+  function handleChip(k){
+    if(k === "why"){
+      addMsg("bot", "因为同一个 9,000，<b>含保费</b>和<b>不含保费</b>算出来的“每月能拿出多少钱”会差 400 元。这笔钱要拿去还房贷还是买保险，结论会完全不同。<br><br>你的画像里没有写这一项，所以你只能自己告诉我。");
+      return;
+    }
+    if(k === "check"){
+      addMsg("bot", "检查了一遍：<br>· 收入 12,000 来自你的个人画像，近 3 个月流水也对得上；<br>· 生活预算 9,000 和流水吻合（8,700–9,300）；<br>·<b> 其他固定承诺你填了 0</b>，但流水里有一笔每月 800 的固定转账，连续 4 个月了，是不是漏了？");
+      addOffer("把「其他固定承诺」改成 800", "来源：近 4 个月每月 12 日固定转出", () => {
+        state.extraFixed = 800;
+        $("#f-extraFixed").value = "800";
+        setSrc("extraFixed", "AI", "AI 建议 · 来自流水");
+        flash($("#f-extraFixed"));
+        renderStep();
+      });
+      return;
+    }
+    if(k === "help"){
+      addMsg("bot", "这一屏其实只问一件事：<b>你每月必须花掉多少钱</b>。<br><br>判断标准很简单——“如果这个月不花它，生活会出问题”的，就算进来；“可花可不花”的，不算。<br><br>拿不准的话，我可以按你的流水先估一个数给你，你再改。");
+      addOffer("把「月生活预算」设为 9,000", "来源：近 3 个月流水的中位数", () => {
+        state.living = 9000;
+        $("#f-living").value = "9000";
+        setSrc("living", "FLOW", "按你的流水估的");
+        flash($("#f-living"));
+        renderStep();
+      });
+      return;
+    }
+  }
+
+  $$("[data-ask]").forEach(b => {
+    b.addEventListener("click", () => {
+      const k = b.dataset.ask;
+      openPanel();
+      if(k === "income"){
+        addMsg("me", "我这屏不确定该填多少");
+        setTimeout(() => {
+          addMsg("bot", "你的画像里固定月收入是 12,000，已经填好了。如果这个月有变化（换工作、降薪），直接改数字就行，改完我会标成“你填写”。");
+        }, 260);
+      } else if(k === "living"){
+        addMsg("me", "帮我估一下生活预算");
+        setTimeout(() => {
+          addMsg("bot", "按你近 3 个月流水：房租 4,000 + 通勤 500 + 吃饭日用 4,500。中位数是 9,000。<br>要不要我帮你填进去？");
+          addOffer("把「月生活预算」设为 9,000", "来源：近 3 个月流水", () => {
+            state.living = 9000;
+            $("#f-living").value = "9000";
+            setSrc("living", "FLOW", "按你的流水估的");
+            flash($("#f-living"));
+            renderStep();
+          });
+        }, 280);
+      } else if(k === "premium"){
+        addMsg("me", "我不确定保费算没算在里面");
+        setTimeout(() => {
+          addMsg("bot", "这个我从流水里看不出来——因为你流水里没有一笔单独写着“保费”的支出。<br><br>有两种可能：① 保费是年缴，走的那笔 4,800 被你归到“其他”了；② 保费从银行卡直接扣，你没录进来。<br><br>如果是①，说明你现在这 9,000 里已经含了保费；如果是②，那是没含。你回想一下今年那笔 4,800 是在哪儿付的？");
+          addMsg("bot", "想不起来也没关系，先按“不包含”填——这样算出来的可投入金额更保守，不会让你高估。");
+          addOffer("把「生活预算含保费」设为：不包含", "保守口径，宁可低估可投入", () => {
+            state.includePremium = false;
+            setSrc("includePremium", "AI", "AI 建议 · 保守口径");
+            $$('[data-qk="premium"]').forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === "0")));
+            markAnswered("premium", true);
+            renderStep();
+          });
+        }, 280);
+      } else if(k === "review"){
+        addMsg("me", "帮我复核一遍");
+        setTimeout(() => {
+          const cap = capacity();
+          addMsg("bot", "复核完了：<br>· 收入 12,000 − 生活 9,000 − 固定 0 = " + money(cap) + "<br>· 保费你选了" +
+            (state.includePremium ? "已包含" : "不包含") + "，所以" + (state.includePremium ? "不再单独扣 400" : "再扣 400") + "<br>· 这个数占总收入的 " +
+            (cap / (state.income + state.otherIncome) * 100).toFixed(0) + "%，属于健康区间<br><br>唯一要提醒的是：你的应急金只有 1.2 个月，建议先补到 3 个月再谈目标投入。");
+          addMsg("bot", "我没有改动任何数字。要改的话告诉我改哪个。");
+        }, 300);
+      }
+    });
+  });
+
+  // 简短的自然语言解析，让 demo 有"听懂"的感觉
+  $("#composer").addEventListener("submit", e => {
+    e.preventDefault();
+    const text = draft.value.trim();
+    if(!text) return;
+    addMsg("me", text.replace(/</g,"&lt;"));
+    draft.value = "";
+    const m = text.match(/(收入|生活预算|生活|固定承诺|固定)[^0-9]{0,6}([0-9]+)/);
+    setTimeout(() => {
+      if(m){
+        const n = Number(m[2]);
+        const key = /收入/.test(m[1]) ? "income" : /固定/.test(m[1]) ? "extraFixed" : "living";
+        const label = key === "income" ? "月收入" : key === "extraFixed" ? "其他固定承诺" : "月生活预算";
+        addMsg("bot", "明白，把「" + label + "」改成 " + money(n) + "。确认一下：");
+        addOffer("把「" + label + "」设为 " + money(n), "你说：" + text.slice(0, 24), () => {
+          state[key] = n;
+          $("#f-" + key).value = String(n);
+          setSrc(key, "USER", "你填写");
+          flash($("#f-" + key));
+          renderStep();
+        });
+      } else {
+        addMsg("bot", "收到。这一页的每个数字我都能读到，也可以帮你解释每项是什么意思。<br><br>要改哪个数字，直接说“把生活预算改成 9500”这种就行，我会先给你确认卡，不会直接改。");
+      }
+    }, 320);
+  });
+  draft.addEventListener("keydown", e => {
+    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#composer").requestSubmit(); }
+  });
+
+  /* ---------- toast ---------- */
+  let toastTimer;
+  function toast(msg){
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("on"), 2600);
+  }
+
+  /* ---------- 评审说明条 ---------- */
+  const sharebar = $("#sharebar");
+  if(sharebar) $("#closeShare").addEventListener("click", () => { sharebar.style.display = "none"; });
+
+  renderStep();
+
+  // 首次进来给个轻提示，引导用户发现悬浮球
+  setTimeout(() => { if(!panel.classList.contains("open")) toast("右下角那个球可以随时问我，我会读这一页"); }, 1200);
+})();
+</script>
+</body>
+</html>

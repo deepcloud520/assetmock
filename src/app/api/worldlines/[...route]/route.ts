@@ -4,6 +4,7 @@ import { ServiceError } from '@/server/store';
 import { simulationEndpoint } from '@/server/simulations/access';
 import { describeIssues } from '@/server/worldlines/input';
 import { runWorldlines, worldlineCards, worldlineOpening } from '@/server/worldlines/service';
+import { interpretInputSchema, reservedInterpretation } from '@/server/worldlines/interpret';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,11 @@ export const POST = simulationEndpoint(async (request, _owner, context) => {
   if (parts[0] === 'runs') {
     const { model } = await guarded(() => runWorldlines(context.workspaceId, payload));
     return model;
+  }
+  // AI 解读：形状先定死，模型后接（当前固定返回 RESERVED）
+  if (parts[0] === 'interpret') {
+    const input = interpretInputSchema.parse(payload);
+    return reservedInterpretation(input);
   }
   throw new ServiceError(404, '接口不存在');
 });
