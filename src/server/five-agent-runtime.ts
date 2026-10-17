@@ -22,7 +22,9 @@ export async function createAgentSession(workspaceId:string,raw:unknown){
 }
 export async function getAgentSession(workspaceId:string,id:string){
  const session=await db.agentSession.findFirst({where:{workspaceId,id,kind:{in:["FIVE_AGENT","GOAL_DISCOVERY"]}},include:{messages:{orderBy:[{createdAt:"desc"},{id:"desc"}],take:200},runs:{orderBy:{createdAt:"desc"},take:15,include:{proposals:true}}}});
- if(!session)throw new ApiError("会话不存在",404);const proposals=await db.agentProposal.findMany({where:{workspaceId,status:"PENDING",run:{sessionId:id}}});return serialize({...session,readOnly:session.kind!=="FIVE_AGENT",messages:session.messages.reverse(),proposals});
+ if(!session)throw new ApiError("会话不存在",404);
+ const fundingDecision=session.agentKey==="GOAL"?await db.carDecision.findFirst({where:{workspaceId,OR:[{goalSessionId:session.id},...(session.goalId?[{goalId:session.goalId}]:[])]},orderBy:{updatedAt:"desc"},select:{id:true,version:true,status:true,activePlanId:true}}):null;
+ const proposals=await db.agentProposal.findMany({where:{workspaceId,status:"PENDING",run:{sessionId:id}}});return serialize({...session,funding:fundingDecision,readOnly:session.kind!=="FIVE_AGENT",messages:session.messages.reverse(),proposals});
 }
 export async function startAgentMessage(workspaceId:string,id:string,raw:unknown){
  const input=messageInput.parse(raw);const session=await db.agentSession.findFirst({where:{workspaceId,id,kind:"FIVE_AGENT",status:{not:"CANCELLED"}}});if(!session)throw new ApiError("会话不存在",404);

@@ -5,6 +5,12 @@ import { z } from "zod";
 export const carMoneySchema = z.string().max(13).regex(/^\d+$/, "金额须为非负整数分").refine((v) => /^\d+$/.test(v) && BigInt(v) <= 1_000_000_000_000n, "金额超出支持范围");
 const money = carMoneySchema;
 export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "请选择月份").refine((s) => Number(s.slice(0, 4)) >= 2000 && Number(s.slice(0, 4)) <= 2200);
+export const carLoanSchema = z.object({
+    quoted: z.boolean(), annualRatePercent: z.string().regex(/^\d{1,2}(\.\d{1,6})?$/, "请输入名义年利率（百分比）"),
+    rateBasis: z.literal("NOMINAL_ANNUAL"), termMonths: z.number().int().min(1).max(84),
+    downPaymentPercent: z.number().min(0).max(100), maxPrincipalMinor: money,
+    method: z.enum(["EQUAL_PAYMENT", "EQUAL_PRINCIPAL"]), feeMinor: money,
+  }).strict();
 export const carFactsSchema = z.object({
   purpose: z.string().trim().max(400).default(""),
   targetMonth: monthSchema.nullable().default(null),
@@ -25,25 +31,26 @@ export const carFactsSchema = z.object({
   sourcesConfirmed: z.boolean().default(false),
   otherGoalsConfirmed: z.boolean().default(false),
   goalReconciliations: z.array(z.object({ goalId: z.string().min(1), preparedIncludesLinked: z.boolean() }).strict()).max(100).default([]),
-  sources: z.array(z.object({ assetId: z.string().min(1), amountMinor: money, availableMonth: monthSchema.nullable(), use: z.boolean() }).strict()).max(100).default([]),
+  sources: z.array(z.object({ assetId: z.string().min(1), amountMinor: money, availableMonth: monthSchema.nullable(), feeMinor: money.nullable().optional(), detailsConfirmed: z.boolean().optional(), use: z.boolean() }).strict()).max(100).default([]),
   bonuses: z.array(z.object({ id: z.string().min(1).max(80), name: z.string().trim().min(1).max(80), amountMinor: money, month: monthSchema, confirmed: z.boolean() }).strict()).max(24).default([]),
   cuts: z.array(z.object({ id: z.string().min(1).max(80), name: z.string().trim().min(1).max(80), amountMinor: money, impact: z.string().max(240), accepted: z.boolean() }).strict()).max(20).default([]),
-  loan: z.object({
-    quoted: z.boolean(), annualRatePercent: z.string().regex(/^\d{1,2}(\.\d{1,6})?$/, "请输入名义年利率（百分比）"),
-    rateBasis: z.literal("NOMINAL_ANNUAL"), termMonths: z.number().int().min(1).max(84),
-    downPaymentPercent: z.number().min(0).max(100), maxPrincipalMinor: money,
-    method: z.enum(["EQUAL_PAYMENT", "EQUAL_PRINCIPAL"]), feeMinor: money,
-  }).strict().nullable().default(null),
+  loan: carLoanSchema.nullable().default(null),
+  unifiedPlanning: z.boolean().optional(),
+  loanOffers: z.array(carLoanSchema.extend({ id: z.string().min(1).max(80), label: z.string().max(100), requestedPrincipalMinor: money.nullable().optional() })).max(8).optional(),
+  maxMonthlyPaymentMinor: money.nullable().optional(),
+
 }).strict().superRefine((v, ctx) => {
-  for (const [key, ids] of [["sources", v.sources.map((s) => s.assetId)], ["bonuses", v.bonuses.map((s) => s.id)], ["cuts", v.cuts.map((s) => s.id)], ["goalReconciliations", v.goalReconciliations.map((s) => s.goalId)]] as const) {
+  for (const [key, ids] of [["loanOffers", (v.loanOffers ?? []).map((o) => o.id)], ["sources", v.sources.map((s) => s.assetId)], ["bonuses", v.bonuses.map((s) => s.id)], ["cuts", v.cuts.map((s) => s.id)], ["goalReconciliations", v.goalReconciliations.map((s) => s.goalId)]] as const) {
     if (new Set(ids).size !== ids.length) ctx.addIssue({ code: "custom", path: [key], message: "记录不能重复" });
   }
   const cut = v.cuts.filter((c) => c.accepted).reduce((a, c) => a + BigInt(c.amountMinor), 0n);
   if (v.livingExpensesMinor !== null && cut + BigInt(v.replacedTransportMinor ?? "0") > BigInt(v.livingExpensesMinor)) ctx.addIssue({ code: "custom", path: ["cuts"], message: "削减消费与替代交通费不能超过生活支出，不能重复计算" });
 });
 export type CarFacts = z.infer<typeof carFactsSchema>;
-export type CarSource = { id: string; assetId: string | null; name: string; amountMinor: string; month: string };
+export type CarSource = { id: string; assetId: string | null; name: string; amountMinor: string; month: string; priority?: number; feeMinor?: string };
 export type CarContext = {
+  accountAssets?: import("./goal-funding-report").ReportAsset[];
+  horizonMonths?: number;
   asOfMonth: string; portfolioRevision: number; transactionRevision: number;
   sources: CarSource[]; protectedSources: { name: string; reason: string; amountMinor: string }[];
   monthlyDebtMinor: string; otherGoalMonthlyMinor: string; otherGoalReserveMinor: string;
@@ -51,6 +58,8 @@ export type CarContext = {
 };
 export type LoanPayment = { month: number; principalMinor: string; interestMinor: string; paymentMinor: string };
 export type CarScenario = {
+  purchaseAssetRemaining?: Record<string, string>; purchaseAccumulatedMinor?: string;
+  loanOfferId?: string; loanTerms?: NonNullable<CarFacts["loan"]>; financingCostMinor?: string; requiredSavingMinor?: string;
   key: string; strategy: "ON_TIME" | "LOWER_BUDGET" | "DELAY" | "MORE_ROOM"; method: "CASH" | "LOAN";
   budgetMinor: string; purchaseMonth: string; landingTotalMinor: string; upfrontMinor: string;
   loanPrincipalMinor: string; loanInterestMinor: string; loanPayments: LoanPayment[];
@@ -61,6 +70,8 @@ export type CarScenario = {
   timeline: { month: string; balanceMinor: string; netMinor: string; loanPaymentMinor: string }[];
 };
 export type CarEvaluation = {
+  report?: import("./goal-funding-report").FundingReport;
+  evaluationId?: string; sourceSignature?: string;
   formulaVersion: string; asOfMonth: string; portfolioRevision: number; transactionRevision: number;
   redLineChecks?: import("./database-planning").ConstraintCheck[];
   recommendationReason?: string; preferenceEvidence?: CarContext["preferenceEvidence"];
@@ -110,19 +121,21 @@ export function calculateCarScenario(facts: CarFacts, context: CarContext, strat
   const runningDelta = n(facts.runningMonthlyMinor) - n(facts.replacedTransportMinor);
   const floor = n(facts.reserveFloorMinor) + n(context.otherGoalReserveMinor);
   const delay = monthIndex(purchaseMonth) - monthIndex(context.asOfMonth);
-  const horizon = Math.max(delay + Math.max(12, schedule.length), 12);
+  const horizon = Math.max(context.horizonMonths ?? 0, delay + Math.max(12, schedule.length), 12);
   const sources = [...context.sources, ...facts.bonuses.filter((b) => b.confirmed && b.month >= context.asOfMonth).map((b) => ({ id: `BONUS:${b.id}`, assetId: null, name: b.name, amountMinor: b.amountMinor, month: b.month }))];
   let balance = 0n; let minimum = 0n; let balanceBeforePurchase = 0n;
   const buckets: (CarSource & { remaining: bigint })[] = [];
   const funding: CarScenario["funding"] = [];
   function withdraw(amount: bigint, record: boolean) {
     let remaining = amount;
+    if (facts.unifiedPlanning) buckets.sort((a, b) => (a.priority ?? (a.assetId ? 2 : 1)) - (b.priority ?? (b.assetId ? 2 : 1)) || (BigInt(a.feeMinor ?? "0") < BigInt(b.feeMinor ?? "0") ? -1 : BigInt(a.feeMinor ?? "0") > BigInt(b.feeMinor ?? "0") ? 1 : 0) || a.month.localeCompare(b.month) || a.id.localeCompare(b.id));
     for (const source of buckets) {
       const used = min(remaining, source.remaining);
       source.remaining -= used; remaining -= used;
       if (record && used > 0n) funding.push({ id: source.id, assetId: source.assetId, name: source.name, amountMinor: source.amountMinor, month: source.month, usedMinor: used.toString() });
     }
   }
+  let purchaseAssetRemaining: Record<string, string> | undefined; let purchaseAccumulatedMinor: string | undefined;
   const reasons: string[] = []; const timeline: CarScenario["timeline"] = [];
   for (let i = 0; i <= horizon; i++) {
     const month = addMonths(context.asOfMonth, i);
@@ -136,7 +149,13 @@ export function calculateCarScenario(facts: CarFacts, context: CarContext, strat
     balance += released + net;
     if (net > 0n) buckets.push({ id: `SURPLUS:${month}`, assetId: null, name: `${month}结余（已扣除其他承诺）`, amountMinor: net.toString(), month, remaining: net });
     else if (net < 0n) withdraw(-net, false);
-    if (i === delay) { balanceBeforePurchase = balance; withdraw(upfront, true); balance -= upfront; }
+    if (i === delay) {
+      balanceBeforePurchase = balance; withdraw(upfront, true); balance -= upfront;
+      if (facts.unifiedPlanning) {
+        purchaseAssetRemaining = Object.fromEntries(buckets.filter(b => b.assetId).map(b => [b.assetId!, b.remaining.toString()]));
+        purchaseAccumulatedMinor = buckets.filter(b => !b.assetId).reduce((v,b) => v + b.remaining, 0n).toString();
+      }
+    }
     minimum = i === 0 ? balance : min(minimum, balance);
     if (balance < floor && !reasons.includes("储备底线不足")) reasons.push("储备底线不足");
     if (i > delay && net + oneOff < 0n && !reasons.includes("购车后每月持续入不敷出")) reasons.push("购车后每月持续入不敷出");
@@ -147,6 +166,7 @@ export function calculateCarScenario(facts: CarFacts, context: CarContext, strat
   if (funding.reduce((sum, source) => sum + n(source.usedMinor), 0n) < upfront) reasons.push("购车当月可用资金不足");
   const firstPayment = n(schedule[0]?.paymentMinor ?? "0");
   return {
+    ...(facts.unifiedPlanning ? { purchaseAssetRemaining, purchaseAccumulatedMinor } : {}),
     key: `${strategy}_${method}`, strategy, method, budgetMinor: price.toString(), purchaseMonth,
     landingTotalMinor: (price + n(facts.landingFeesMinor)).toString(), upfrontMinor: upfront.toString(),
     loanPrincipalMinor: loanPrincipal.toString(), loanInterestMinor: schedule.reduce((s, p) => s + n(p.interestMinor), 0n).toString(), loanPayments: schedule,
@@ -176,6 +196,7 @@ export function carMissingInformation(facts: CarFacts, rawContext: CarContext, p
   return [...new Set(missing)];
 }
 export function evaluateCarPlan(facts: CarFacts, rawContext: CarContext): CarEvaluation {
+  if (facts.unifiedPlanning) return evaluateUnifiedCarPlan(facts, rawContext);
   const context = { ...rawContext, missing: carMissingInformation(facts, rawContext) };
   const methods: CarScenario["method"][] = facts.loan && !context.cashOnly ? ["CASH", "LOAN"] : ["CASH"];
   const ranges = context.missing.length ? [] : methods.map((method) => ({ method, maxBudgetMinor: maxBudget(facts, context, method).toString() }));
@@ -224,4 +245,53 @@ export function evaluateCarPlan(facts: CarFacts, rawContext: CarContext): CarEva
 }
 export function purchasedMonthlyBalance(facts: CarFacts, context: CarContext, actualPaymentMinor: string) {
   return (n(facts.monthlyIncomeMinor) - n(facts.livingExpensesMinor) - n(facts.monthlyPremiumMinor) - n(context.monthlyDebtMinor) - n(context.otherGoalMonthlyMinor) + savings(facts, true) - n(facts.runningMonthlyMinor) + n(facts.replacedTransportMinor) - n(actualPaymentMinor)).toString();
+}
+
+/** Same-date, same-budget candidates; quoted terms are never extrapolated. */
+function evaluateUnifiedCarPlan(facts: CarFacts, raw: CarContext): CarEvaluation {
+  const missing = carMissingInformation(facts, raw);
+  if (!facts.budgetMinor || n(facts.budgetMinor) <= 0n) missing.push("确认正数购车预算");
+  const offers = facts.loanOffers ?? (facts.loan ? [{ ...facts.loan, id: "legacy", label: "已有贷款条件", requestedPrincipalMinor: null }] : []);
+  const delay = facts.targetMonth ? monthIndex(facts.targetMonth) - monthIndex(raw.asOfMonth) : 0;
+  const context = { ...raw, missing, horizonMonths: delay + Math.max(12, ...offers.map(o => o.termMonths)) };
+  const scenarios: CarScenario[] = [];
+  if (!missing.length && facts.targetMonth && facts.budgetMinor) {
+    const price = n(facts.budgetMinor);
+    const make = (loan: CarFacts["loan"], key: string, offerId?: string) => {
+      const s = calculateCarScenario({ ...facts, loan }, context, "ON_TIME", loan ? "LOAN" : "CASH", price, facts.targetMonth!);
+      s.key = key; s.loanOfferId = offerId; if (loan) s.loanTerms = loan;
+      s.financingCostMinor = (n(s.loanInterestMinor) + n(loan?.feeMinor ?? "0")).toString();
+      const required = s.funding.filter(f => f.id.startsWith("SURPLUS:")).reduce((v, f) => v + n(f.usedMinor), 0n);
+      s.requiredSavingMinor = delay > 0 ? ((required + BigInt(delay) - 1n) / BigInt(delay)).toString() : "0";
+      if (facts.maxMonthlyPaymentMinor != null && s.loanPayments.some(p => n(p.paymentMinor) > n(facts.maxMonthlyPaymentMinor!))) s.reasons.push("月供超过已确认上限");
+      if (s.reasons.length) { s.feasible = false; s.adoptable = false; }
+      return s;
+    };
+    scenarios.push(make(null, "UNIFIED_CASH"));
+    if (!context.cashOnly) for (const offer of offers) {
+      const { id: _id, label: _label, requestedPrincipalMinor: _requested, ...terms } = offer;
+      void _id; void _label; void _requested;
+      const max = make(terms, `UNIFIED_${offer.id}_MIN`, offer.id);
+      // Before purchase debt cannot affect cashflow. Minimum funding principal is
+      // exactly the amount needed to keep the purchase-month reserve intact.
+      const floor = n(facts.reserveFloorMinor) + n(context.otherGoalReserveMinor);
+      const needed = price + n(facts.landingFeesMinor) + n(terms.feeMinor) + floor - n(max.balanceBeforePurchaseMinor);
+      const principal = needed > 0n ? needed : 0n;
+      const withinLimit = principal <= n(max.loanPrincipalMinor);
+      const minimal = withinLimit ? make({ ...terms, maxPrincipalMinor: principal.toString() }, max.key, offer.id) : max;
+      if (!withinLimit) { minimal.reasons = [...new Set([...minimal.reasons, "报价额度不足以保留储备底线"])]; minimal.feasible = false; minimal.adoptable = false; }
+      if (n(minimal.loanPrincipalMinor) > 0n || !withinLimit) scenarios.push(minimal);
+      if (offer.requestedPrincipalMinor != null && n(offer.requestedPrincipalMinor) !== n(minimal.loanPrincipalMinor)) {
+        const requested = make({ ...terms, maxPrincipalMinor: offer.requestedPrincipalMinor }, `UNIFIED_${offer.id}_REQUESTED`, offer.id);
+        if (n(offer.requestedPrincipalMinor) > n(max.loanPrincipalMinor)) { requested.reasons.push("指定贷款金额超过报价额度或首付限制"); requested.feasible = false; requested.adoptable = false; }
+        scenarios.push(requested);
+      }
+    }
+  }
+  scenarios.sort((a,b) => Number(b.adoptable)-Number(a.adoptable) || Number(b.feasible)-Number(a.feasible) || (n(a.financingCostMinor ?? "0") < n(b.financingCostMinor ?? "0") ? -1 : n(a.financingCostMinor ?? "0") > n(b.financingCostMinor ?? "0") ? 1 : 0) || a.loanPayments.length-b.loanPayments.length || a.key.localeCompare(b.key));
+  return { formulaVersion: "unified-car-v1", asOfMonth: raw.asOfMonth, portfolioRevision: raw.portfolioRevision, transactionRevision: raw.transactionRevision,
+    missing: [...new Set(missing)], scenarios, recommendedKey: scenarios.find(s => s.adoptable)?.key ?? null, budgetRanges: [], protectedSources: raw.protectedSources,
+    recommendationReason: "先满足资金底线和月供限制，再优先比较融资成本较低、期限较短的可采用方案。投资赎回与生活调整须另行确认。",
+    assumptions: ["购车月末付款，次月开始月供和新增养车开支。", "预计结余不是实际存款，不计未来收益、加薪和未确认奖金。", "现有还款与保费按已确认月预算持续预留；变化后需复盘。", "所有候选覆盖同一时间范围，至少购车后12个月并覆盖最长贷款期限。", "贷款条件逐项核对；假设报价不能采用。"],
+    assessments: [{ manager: "资产管家", conclusion: "使用同一底账核对预算、保费、可用时间、资金占用及账户变化。", issues: missing }], savingsSuggestions: [] };
 }

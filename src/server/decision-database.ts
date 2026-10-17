@@ -25,10 +25,12 @@ export async function applyRedLines(tx: Prisma.TransactionClient, workspaceId: s
     if (blocked.length) { scenario.adoptable = false; scenario.reasons.push(...blocked.map((c) => `${c.result === "VIOLATED" ? "与你之前的选择冲突" : c.result === "SKIPPED_MANUAL" ? "红线需人工核对" : "红线资料待核实"}：${c.detail.text}`)); }
   }
   if (evaluation.recommendedKey && !evaluation.scenarios.find((s) => s.key === evaluation.recommendedKey)?.adoptable) evaluation.recommendedKey = evaluation.scenarios.find((s) => s.adoptable)?.key ?? null;
-  const enriched = { ...evaluation, redLineChecks: checks };
+  const sourceSignature = createHash("sha256").update(encode({ facts, context, constraints })).digest("hex");
+  const enriched: CarEvaluation & { redLineChecks: typeof checks } = { ...evaluation, sourceSignature, redLineChecks: checks };
   if (persist) {
     const row = await tx.carDecision.findUniqueOrThrow({ where: { id: decisionId } });
     const record = await tx.carEvaluationRecord.create({ data: { workspaceId, decisionId, decisionVersion: row.version, sourceSignature: createHash("sha256").update(encode({ facts, context, constraints })).digest("hex"), calculatedOn: today(), formulaVersion: evaluation.formulaVersion, inputJson: encode({ facts, context }), resultJson: encode(enriched) } });
+    enriched.evaluationId = record.id; enriched.sourceSignature = record.sourceSignature;
     for (const c of checks) await tx.redLineCheck.create({ data: { workspaceId, constraintId: c.constraintId, evaluationId: record.id, candidateKey: c.candidateKey, result: c.result, detailJson: encode(c.detail) } });
     await registerDependencies(tx, workspaceId, "CAR_EVALUATION", record.id);
   }

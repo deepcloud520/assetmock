@@ -60,7 +60,7 @@ export async function getExecutionResults(workspaceId: string) {
         isStale: action.sourceRevision !== actionRevision(action),
         isOverdue: Boolean(action.dueDate && action.dueDate < new Date() && ["PROPOSED", "ACCEPTED", "DEFERRED"].includes(action.status)),
         productConditions: action.productConditionsJson ? JSON.parse(action.productConditionsJson) : null,
-        details: action.detailsJson ? JSON.parse(action.detailsJson) : null,
+        details: action.detailsJson ? normalizeActionDetails(JSON.parse(action.detailsJson)) : null,
       })),
     } : null,
   });
@@ -102,3 +102,10 @@ export async function applyActionTransition(tx: Prisma.TransactionClient, worksp
     return tx.action.findUniqueOrThrow({ where: { id } });
 }
 
+
+/** Reminder records carry provenance but may predate the action-details format. */
+export function normalizeActionDetails(raw: Record<string, unknown>) {
+  return { ...raw, prerequisites: Array.isArray(raw.prerequisites) ? raw.prerequisites : [], steps: Array.isArray(raw.steps) ? raw.steps : [],
+    completionCriteria: typeof raw.completionCriteria === "string" ? raw.completionCriteria : "核对本事项关联的实际资料并更新状态",
+    verificationRequired: typeof raw.verificationRequired === "string" ? raw.verificationRequired : "用户确认的实际资料" };
+}

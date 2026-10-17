@@ -1,3 +1,5 @@
+import { buildFundingReport } from "@/domain/goal-funding-report";
+import { assetAccount } from "@/domain/account-classification";
 import { modelConfig } from "@/lib/model-config";
 import { applyRedLines, currentConstraints, migrateDecisionMemory, seedPlanMemory, verifyAssumption } from "./decision-database";
 import { monthlyBudget, recordRevision, registerDependencies } from "./unified-store";
@@ -17,7 +19,7 @@ import { structuredResponse } from "./agent-runtime";
 
 const revision = z.number().int().nonnegative();
 const saveSchema = z.object({ id: z.string().optional(), expectedVersion: revision.optional(), expectedRevision: revision, facts: carFactsSchema, viewStage: z.enum(["facts", "compare", "review"]).optional() }).strict();
-const adoptionSchema = z.object({ expectedVersion: revision, scenarioKey: z.string().min(1), reason: z.string().trim().max(400).optional(), reviewId: z.string().optional(), reasons: z.array(z.object({ category: z.enum(["KEEP_ASSET", "KEEP_SPENDING", "AVOID_DEBT", "TIME_FIRST", "AMOUNT_FIRST", "OTHER"]), userText: z.string().trim().max(500).nullable().optional(), assetId: z.string().nullable().optional() }).strict().refine((r) => r.category !== "KEEP_ASSET" || Boolean(r.assetId), "保留资产理由需要指定资产")).max(10).default([]), manualChecks: z.array(z.string()).default([]) }).strict();
+const adoptionSchema = z.object({ evaluationId: z.string().optional(), expectedVersion: revision, scenarioKey: z.string().min(1), reason: z.string().trim().max(400).optional(), reviewId: z.string().optional(), reasons: z.array(z.object({ category: z.enum(["KEEP_ASSET", "KEEP_SPENDING", "AVOID_DEBT", "TIME_FIRST", "AMOUNT_FIRST", "OTHER"]), userText: z.string().trim().max(500).nullable().optional(), assetId: z.string().nullable().optional() }).strict().refine((r) => r.category !== "KEEP_ASSET" || Boolean(r.assetId), "保留资产理由需要指定资产")).max(10).default([]), manualChecks: z.array(z.string()).default([]) }).strict();
 const reviewSchema = z.object({ expectedVersion: revision, month: monthSchema, facts: z.object(carFactsSchema.shape).strict(), actualFundingMinor: carMoneySchema, note: z.string().max(1000), expectedRevision: revision, balanceChecks: z.array(z.object({ entityType: z.enum(["ASSET", "LIABILITY"]), entityId: z.string(), amountMinor: fen, confirmed: z.literal(true) }).strict()).optional(), assumptionChecks: z.array(z.object({ assumptionId: z.string(), period: monthSchema, expectedVersion: revision, actualValue: fen.nullable(), occurredOn: naturalDate.nullable(), evidence: z.string().min(1).max(500) }).strict()).optional() }).strict();
 const purchaseSchema = z.object({ actualVehicleValueMinor: carMoneySchema, expectedVersion: revision, expectedRevision: revision, actualPriceMinor: carMoneySchema, actualFeesMinor: carMoneySchema, purchasedMonth: monthSchema, loan: carFactsSchema.shape.loan, confirmLedgerUpdate: z.literal(true) }).strict();
 
@@ -33,7 +35,7 @@ export async function carContext(tx: Prisma.TransactionClient, workspaceId: stri
   ]);
   if (!workspace) throw new ApiError("工作区不存在", 404);
   const professional = await professionalFacts(tx, workspaceId);
-  const ownGoalId = carGoals.find((c) => c.id === decisionId)?.goalId;
+  const ownGoalId = decisionId ? (await tx.carDecision.findFirst({ where: { id: decisionId, workspaceId } }))?.goalId : undefined;
   const reserved = new Map<string, bigint>();
   for (const row of reservations) reserved.set(row.assetId, (reserved.get(row.assetId) ?? 0n) + row.amountMinor);
   for (const row of genericReservations) reserved.set(row.assetId, (reserved.get(row.assetId) ?? 0n) + row.amountMinor);
@@ -53,7 +55,7 @@ export async function carContext(tx: Prisma.TransactionClient, workspaceId: stri
       protectedSources.push({ name: asset.name, amountMinor: asset.currentValueMinor.toString(), reason: "用户明确确认不动用该资产" });
       continue;
     }
-    if (asset.goalId || !asset.isAdjustable || asset.currency !== "CNY") {
+    if ((asset.goalId && asset.goalId !== ownGoalId) || !asset.isAdjustable || asset.currency !== "CNY" || (facts.unifiedPlanning && (asset.type === "INSURANCE_CASH_VALUE" || assetAccount(asset) === "protection"))) {
       protectedSources.push({ name: asset.name, amountMinor: asset.currentValueMinor.toString(), reason: asset.goalId ? "已关联其他目标" : asset.currency !== "CNY" ? "首版不换算外币" : "长期资产未允许调配" });
       if (source?.use) missing.push(`${asset.name}受保护，不能列为购车来源`);
       continue;
@@ -65,14 +67,17 @@ export async function carContext(tx: Prisma.TransactionClient, workspaceId: stri
     if (BigInt(source.amountMinor) > available) { missing.push(`${asset.name}金额超过扣除其他预留后的余额`); continue; }
     if (available > BigInt(source.amountMinor)) protectedSources.push({ name: asset.name, amountMinor: (available - BigInt(source.amountMinor)).toString(), reason: "本次未分配给购车与储备" });
     const holding = professional.holdings.find((h) => h.assetId === asset.id);
-    if (holding && !holding.confirmed) missing.push(`${asset.name}的持仓资料待确认`);
+    const inlineConfirmed = Boolean(facts.unifiedPlanning && source.detailsConfirmed && source.feeMinor !== undefined && source.feeMinor !== null);
+    const fee = inlineConfirmed ? source.feeMinor! : holding?.feeMinor;
+    if (holding && !holding.confirmed && !inlineConfirmed) missing.push(`${asset.name}的持仓资料待确认`);
     if (holding?.confirmed && holding.availableOn && source.availableMonth < holding.availableOn.slice(0, 7)) missing.push(`${asset.name}的来源日期早于已确认可用日期`);
-    if (holding?.confirmed && holding.feeMinor === null) missing.push(`${asset.name}的动用费用尚未核实`);
-    if (holding?.confirmed && holding.feeMinor && BigInt(holding.feeMinor) > 0n && (!holding.feeIncludedInLanding || BigInt(holding.feeMinor) > BigInt(facts.landingFeesMinor ?? "0"))) missing.push(`${asset.name}的动用费用需确认计入落地费用，避免遗漏`);
+    if (holding?.confirmed && fee === null) missing.push(`${asset.name}的动用费用尚未核实`);
+    if (fee && BigInt(fee) > 0n && ((!inlineConfirmed && !holding?.feeIncludedInLanding) || BigInt(fee) > BigInt(facts.landingFeesMinor ?? "0"))) missing.push(`${asset.name}的动用费用需确认计入落地费用，避免遗漏`);
     // Explicit dates replace liquidity-class guesses; returned facts must be confirmed.
-    sources.push({ id: `ASSET:${asset.id}`, assetId: asset.id, name: asset.name, amountMinor: source.amountMinor, month: source.availableMonth });
+    if (facts.unifiedPlanning && asset.type !== "CASH" && (!inlineConfirmed && (!holding?.confirmed || !holding.availableOn || holding.feeMinor === null))) missing.push(`${asset.name}需要核对可用日期和动用费用`);
+    sources.push({ ...(facts.unifiedPlanning ? { priority: asset.goalId === ownGoalId ? 0 : assetAccount(asset) === "growth" ? 3 : 2, feeMinor: fee ?? "0" } : {}), id: `ASSET:${asset.id}`, assetId: asset.id, name: asset.name, amountMinor: source.amountMinor, month: source.availableMonth });
   }
-  const knownHoldingFees = professional.holdings.filter((h) => h.confirmed && facts.sources.some((s) => s.assetId === h.assetId && s.use)).reduce((sum, h) => sum + BigInt(h.feeMinor ?? "0"), 0n);
+  const knownHoldingFees = facts.sources.filter(s=>s.use).reduce((sum,s)=>sum+BigInt(s.detailsConfirmed && s.feeMinor != null ? s.feeMinor : professional.holdings.find(h=>h.assetId===s.assetId && h.confirmed)?.feeMinor ?? "0"),0n);
   if (knownHoldingFees > BigInt(facts.landingFeesMinor ?? "0")) missing.push("多笔资金的动用费用总额超过落地费用，请核对是否完整计入");
   for (const source of facts.sources) if (!assets.some((a) => a.id === source.assetId)) missing.push("资金来源中的资产已删除或不属于当前工作区");
   let otherGoalReserve = 0n; let otherGoalMonthly = 0n;
@@ -88,7 +93,7 @@ export async function carContext(tx: Prisma.TransactionClient, workspaceId: stri
   }
   if ((professional.budget || professional.coverageState === "PROVIDED") && !professional.expenseReady) missing.push("专业保费承诺待核实，请确认已有保单费用或明确无保障状态");
   const b = professional.budget;
-  return { additionalExpenses: b && b.oneOffMonth && BigInt(b.oneOffMinor) > 0n ? [{ month: b.oneOffMonth, amountMinor: b.oneOffMinor }] : [], cashOnly, preferenceEvidence: memoryEvidence(preferences), asOfMonth, portfolioRevision: workspace.portfolioRevision, transactionRevision: workspace.transactionRevision, sources, protectedSources,
+  return { ...(facts.unifiedPlanning ? { accountAssets: assets.map(a => ({ id: a.id, name: a.name, type: a.type, goalId: a.goalId, currentValueMinor: a.currentValueMinor.toString(), reservedMinor: (reserved.get(a.id) ?? 0n).toString(), currency: a.currency })) } : {}), additionalExpenses: b && b.oneOffMonth && BigInt(b.oneOffMinor) > 0n ? [{ month: b.oneOffMonth, amountMinor: b.oneOffMinor }] : [], cashOnly, preferenceEvidence: memoryEvidence(preferences), asOfMonth, portfolioRevision: workspace.portfolioRevision, transactionRevision: workspace.transactionRevision, sources, protectedSources,
     monthlyDebtMinor: liabilities.reduce((s, l) => s + l.monthlyPaymentMinor, 0n).toString(), otherGoalMonthlyMinor: otherGoalMonthly.toString(), otherGoalReserveMinor: otherGoalReserve.toString(), missing };
 }
 
@@ -130,6 +135,10 @@ export async function evaluateCarDecision(workspaceId: string, id: string, expec
     const context = await carContext(tx, workspaceId, facts, id);
     if (row.sourceRevision !== context.portfolioRevision) context.missing.push("底账已变化，请核对资料并重新保存");
     const evaluation = await applyRedLines(tx, workspaceId, id, facts, context, evaluateCarPlan(facts, context), true);
+    if (facts.unifiedPlanning) {
+      evaluation.report = buildFundingReport(facts, context, evaluation);
+      if (evaluation.evaluationId) await tx.carEvaluationRecord.update({ where: { id: evaluation.evaluationId }, data: { resultJson: JSON.stringify(evaluation) } });
+    }
     await tx.carDecision.update({ where: { id }, data: { evaluationJson: JSON.stringify(evaluation), viewStage: "compare" } });
     return evaluation;
   });
@@ -143,10 +152,19 @@ async function createPlanActions(tx: Prisma.TransactionClient, workspaceId: stri
     await tx.actionFeedback.create({ data: { actionId: action.id, fromStatus: action.status, toStatus: "DISMISSED", reason: "已由新的购车方案替代" } });
   }
   const task = await tx.agentTask.create({ data: { workspaceId, type: "CAR_PLANNING", status: "COMPLETED", sourceRevision, resultId: planId, completedAt: new Date() } });
-  const monthlySaving = scenario.monthlySavingMinor;
+  const monthlySaving = scenario.requiredSavingMinor ?? scenario.monthlySavingMinor;
   for (const [key, title, amount] of [["funding", "按资金地图准备购车资金", monthlySaving]]) {
     await tx.action.create({ data: { sourceKey: `CAR:${planId}:${key}`, workspaceId, goalId, generationTaskId: task.id, sourceRevision, kind: "CAR_PLANNING", title, reason: "遵守已确认的储备底线、资金来源和消费取舍。", amountMinor: key === "funding" ? BigInt(amount) : null, priority: key === "review" ? 1 : 2, status: "ACCEPTED", verificationType: "REQUIRES_REVIEW", dueDate: new Date(`${addMonths(currentCarMonth(), 1)}-01T00:00:00+08:00`), detailsJson: JSON.stringify({ carPlanId: planId, steps: ["核对各笔资金的可用日期", "记录实际执行情况后进行月度复盘"], prerequisites: [], completionCriteria: "完成资料确认与复盘", verificationRequired: "用户确认实际资金与执行情况" }) } });
   }
+  if (scenario.key.startsWith("UNIFIED_")) {
+    const rows = [
+      { key: "purchase-check", title: "购车前核对价格、报价与可用资金", month: scenario.purchaseMonth, amount: scenario.upfrontMinor },
+      ...scenario.funding.filter(f => f.assetId).map(f => ({ key: `source-${f.assetId}`, title: `核对并准备${f.name}`, month: f.month, amount: f.usedMinor })),
+      ...(scenario.method === "LOAN" ? [{ key: "repayment", title: "核对首期月供与持续还款预算", month: addMonths(scenario.purchaseMonth, 1), amount: scenario.loanPayments[0].paymentMinor }] : []),
+    ];
+    for (const r of rows) await tx.action.create({ data: { sourceKey: `CAR:${planId}:${r.key}`, workspaceId, goalId, generationTaskId: task.id, sourceRevision, kind: "CAR_PLANNING", title: r.title, reason: "按已采用方案核对，完成任务不代表自动划款。", amountMinor: BigInt(r.amount), dueDate: new Date(`${r.month}-01T00:00:00+08:00`), priority: 2, status: "ACCEPTED", verificationType: "REQUIRES_REVIEW", detailsJson: JSON.stringify({ carPlanId: planId, month: r.month, steps: [r.title, "核对实际资金或报价后更新执行状态"], prerequisites: ["已确认本方案"], completionCriteria: "用户核对实际资料后标记完成", verificationRequired: "实际到账、赎回或报价记录" }) } });
+  }
+
 }
 
 export async function adoptCarDecision(workspaceId: string, id: string, body: unknown) {
@@ -176,11 +194,21 @@ export async function adoptCarDecision(workspaceId: string, id: string, body: un
     if (!facts.budgetMinor) throw new ApiError("请先选择意向预算，再比较并采纳方案", 422);
     const context = await carContext(tx, workspaceId, facts, id);
     if (!evaluation || evaluation.asOfMonth !== context.asOfMonth || evaluation.portfolioRevision !== context.portfolioRevision || evaluation.transactionRevision !== context.transactionRevision) throw new ApiError("底账、记账或月份已变化，请重新计算", 409);
+    if (facts.unifiedPlanning) {
+      if (!input.evaluationId || input.evaluationId !== evaluation.evaluationId) throw new ApiError("请使用当前计算记录确认方案", 409);
+      const record = await tx.carEvaluationRecord.findFirst({ where: { id: input.evaluationId, decisionId: id, workspaceId, decisionVersion: row.version } });
+      if (!record) throw new ApiError("计算记录已变化", 409);
+    }
     const baseEvaluation = evaluateCarPlan(facts, context);
     const fresh = await applyRedLines(tx, workspaceId, id, facts, context, baseEvaluation);
+    if (facts.unifiedPlanning && evaluation.sourceSignature !== fresh.sourceSignature) throw new ApiError("规划依据已变化，请重新计算", 409);
+    if (facts.unifiedPlanning) {
+      fresh.evaluationId = evaluation.evaluationId;
+      fresh.report = buildFundingReport(facts, context, fresh);
+    }
     const scenario = fresh.scenarios.find((s) => s.key === input.scenarioKey);
     const manualOnly = scenario && fresh.redLineChecks.filter((c) => c.candidateKey === scenario.key && c.result !== "PASS");
-    const manualAccepted = scenario?.feasible && manualOnly && manualOnly.length > 0 && manualOnly.every((c) => c.result === "SKIPPED_MANUAL" && input.manualChecks.includes(c.constraintId)) && (scenario.method === "CASH" || facts.loan?.quoted);
+    const manualAccepted = scenario?.feasible && manualOnly && manualOnly.length > 0 && manualOnly.every((c) => c.result === "SKIPPED_MANUAL" && input.manualChecks.includes(c.constraintId)) && (scenario.method === "CASH" || (scenario.loanTerms ?? facts.loan)?.quoted);
     if ((!scenario?.adoptable && !manualAccepted) || JSON.stringify(scenario) !== JSON.stringify(evaluation.scenarios.find((s) => s.key === input.scenarioKey))) throw new ApiError("当前资金与报价不支持采纳此方案，请重新计算", 422);
     const claimed = await tx.carDecision.updateMany({ where: { id, version: input.expectedVersion }, data: { version: { increment: 1 } } });
     if (!claimed.count) throw new ApiError("方案已在其他页面更新", 409);
@@ -189,10 +217,11 @@ export async function adoptCarDecision(workspaceId: string, id: string, body: un
     const sourceRevision = context.portfolioRevision + 1;
     if (row.goalId && !await tx.goal.findFirst({ where: { id: row.goalId, workspaceId, deletedAt: null } })) throw new ApiError("关联目标已删除，请重新创建买车决策", 409);
     const assetPrepared = scenario.funding.filter((s) => s.assetId).reduce((sum, s) => sum + BigInt(s.usedMinor), 0n);
-    const goalData = { name: "买车自备资金", type: "CAR_PURCHASE", targetAmountMinor: BigInt(scenario.upfrontMinor), targetAmountSource: "CAR_PLAN", targetDate: new Date(new Date(`${addMonths(scenario.purchaseMonth, 1)}-01T00:00:00+08:00`).getTime() - 1), preparedAmountMinor: assetPrepared, monthlyContributionMinor: BigInt(scenario.monthlySavingMinor), isFlexible: true };
+    const existingGoal = row.goalId ? await tx.goal.findUnique({ where: { id: row.goalId } }) : null;
+    const goalData = { name: facts.unifiedPlanning ? existingGoal?.name ?? (facts.purpose || "买车") : "买车自备资金", type: "CAR_PURCHASE", targetAmountMinor: BigInt(facts.unifiedPlanning ? scenario.budgetMinor : scenario.upfrontMinor), targetAmountSource: "CAR_PLAN", targetDate: new Date(new Date(`${addMonths(scenario.purchaseMonth, 1)}-01T00:00:00+08:00`).getTime() - 1), preparedAmountMinor: assetPrepared, monthlyContributionMinor: BigInt(scenario.requiredSavingMinor ?? scenario.monthlySavingMinor), isFlexible: true };
     // Goal progress mirrors reservations; it is not an additional asset balance.
     const goal = row.goalId ? await tx.goal.update({ where: { id: row.goalId }, data: goalData }) : await tx.goal.create({ data: { ...goalData, workspaceId } });
-    const adoptedFacts = { ...facts, budgetMinor: scenario.budgetMinor, targetMonth: scenario.purchaseMonth };
+    const adoptedFacts = { ...facts, ...(scenario.loanTerms ? { loan: scenario.loanTerms } : {}), budgetMinor: scenario.budgetMinor, targetMonth: scenario.purchaseMonth };
     for (const r of input.reasons) if (r.assetId && !await tx.asset.findFirst({ where: { id: r.assetId, workspaceId, deletedAt: null } })) throw new ApiError("选择理由关联资产不属于本空间", 422);
     const plan = await tx.carPlanVersion.create({ data: { decisionId: id, version: (row.plans[0]?.version ?? 0) + 1, sourceRevision, transactionRevision: context.transactionRevision, factsJson: JSON.stringify(adoptedFacts), reason: input.reason || (review ? "根据本月实际情况确认调整；未另行说明动机。" : "已确认所展示的预算、资金来源与生活影响；未另行说明动机。"), snapshotJson: JSON.stringify({ reasonStatus: input.reasons.length ? "PROVIDED" : "NOT_PROVIDED", scenario, evaluation: fresh, keyAssumptions: carAssumptions(adoptedFacts), previousPlanId: row.activePlanId, acceptedTradeoffs: { reserveFloorMinor: facts.reserveFloorMinor, cuts: facts.cuts.filter((c) => c.accepted), preferences: (context.preferenceEvidence ?? []).filter((m) => m.status === "ACTIVE" && m.nature === "HARD" && m.evidenceType !== "INFERENCE"), confirmationId: `CHOICE:${randomUUID()}` }, adoptedFromVersion: input.expectedVersion, reviewId: input.reviewId, adoptionInput: input }) } });
     await seedPlanMemory(tx, workspaceId, plan.id, adoptedFacts, input.reasons, row.activePlanId);

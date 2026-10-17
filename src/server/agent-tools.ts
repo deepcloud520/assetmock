@@ -1,3 +1,4 @@
+import { fundingPatchSchema, prepareFundingProposal, coordinateGoalFunding, getGoalFunding } from "./goal-funding";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ApiError, serialize } from "./portfolio";
@@ -33,6 +34,13 @@ async function paperResult(ctx:ToolContext, accountId:string, result:unknown, re
  return serialize({result,paperContext:{accountId,accountVersion:version,asOf:new Date()},evidenceIds:[`PAPER_ACCOUNT:${accountId}:v${version}`,...recordEvidence],note:"独立模拟资金，只读查询，不改变真实资产、模拟委托或策略授权；复盘结论引用下列证据与资料时间"});
 }
 export const agentTools:Record<string,Tool>={
+ getFundingPlan:tool(["GOAL"],"QUERY","读取当前买车规划草稿、生效方案、资金报告和资料缺口；所有金额引用报告",empty,async(_,c)=>getGoalFunding(c.workspaceId,c.sessionId)),
+ proposeFundingDraft:tool(["GOAL"],"PROPOSE","买车目标或本次规划调整：只填写用户明确表达的字段；金额与日期未知可保留草稿。不动资产使用excludedAssetIds，月供限制使用maxMonthlyPaymentMinor。确认后保存目标或调整草稿，绝不采纳方案。",fundingPatchSchema,async(a,c)=>{
+   const planning=await prepareFundingProposal(c.workspaceId,c.sessionId,a);
+   const state=await getGoalFunding(c.workspaceId,c.sessionId);
+   return proposal(c,"CAR_FUNDING_DRAFT","确认买车目标与本次调整",{planning,sourceNames:state.assets.map(x=>({id:x.id,name:x.name})),summary:{name:planning.facts.purpose,targetAmountMinor:planning.facts.budgetMinor,targetDate:planning.facts.targetMonth,reserveMinor:planning.facts.reserveFloorMinor}});
+ }),
+ requestFundingPlan:tool(["GOAL"],"COMPUTE","请求资产管家进行受控的收支、保费、投资可用性核对与确定性买车资金计算。先确认目标和资料；结果不足则补问，不能递归委派或直接采纳。",empty,async(_,c)=>coordinateGoalFunding(c.workspaceId,c.sessionId,c.runId)),
  getPaperAccounts:tool(["INVESTMENT"],"QUERY","列出本空间的手动、AI策略和历史回放模拟账户；选择明确accountId后读取详情",empty,async(_,c)=>{
   const rows=await db.paperAccount.findMany({where:{workspaceId:c.workspaceId},orderBy:{createdAt:"desc"},select:{id:true,name:true,purpose:true,mode:true,status:true,health:true,initialMinor:true,version:true,createdAt:true,archivedAt:true}});
   for(const a of rows)await db.dataDependency.upsert({where:{workspaceId_ownerType_ownerId_sourceType_sourceId:{workspaceId:c.workspaceId,ownerType:"AGENT_RUN",ownerId:c.runId,sourceType:"PAPER_ACCOUNT",sourceId:a.id}},create:{workspaceId:c.workspaceId,ownerType:"AGENT_RUN",ownerId:c.runId,sourceType:"PAPER_ACCOUNT",sourceId:a.id},update:{}});

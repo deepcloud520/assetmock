@@ -1,3 +1,4 @@
+import { assetAccount } from "./account-classification";
 import type { RuleStatus } from "./wealth";
 
 export const FORMULA_VERSION = "wealth-v2";
@@ -201,10 +202,8 @@ export function calculateWealth(input: CalculationInput): WealthCalculation {
   const fourAccounts = { liquidityMinor: 0n, protectionMinor: 0n, goalMinor: 0n, growthMinor: 0n };
   for (const asset of input.assets) {
     const value = money(asset.currentValueMinor);
-    if (asset.goalId) fourAccounts.goalMinor += value;
-    else if (asset.type === "INSURANCE_CASH_VALUE") fourAccounts.protectionMinor += value;
-    else if (["CASH", "BANK_DEPOSIT", "MONEY_MARKET"].includes(asset.type)) fourAccounts.liquidityMinor += value;
-    else fourAccounts.growthMinor += value;
+    const account = assetAccount(asset);
+    fourAccounts[`${account}Minor`] += value;
   }
 
   function liquidUpTo(maxRank: number) {
